@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="diagram.css"><style>body{width:1200px;height:620px}</style></head><body>
+<div class="bg"></div><div class="dots"></div>
+<h1>Architecture</h1><h2>How vlx talks to your system</h2>
+<svg class="wires" width="1200" height="620">
+ <defs>
+  <linearGradient id="w" gradientUnits="userSpaceOnUse" x1="652" y1="0" x2="714" y2="0"><stop offset="0" stop-color="#A78BFA"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
+  <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#22D3EE"/></marker>
+  <marker id="arv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#A78BFA"/></marker>
+ </defs>
+ <path d="M224 300 H286" stroke="#A78BFA" stroke-width="2.5" fill="none" marker-end="url(#arv)"/>
+ <path d="M652 300 H714" stroke="url(#w)" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+ <path d="M940 300 C 980 300, 970 190, 1010 190" stroke="#22D3EE" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+ <path d="M940 300 H1006" stroke="#22D3EE" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+ <path d="M940 300 C 980 300, 970 420, 1010 420" stroke="#22D3EE" stroke-width="2.5" stroke-dasharray="6 6" fill="none" marker-end="url(#ar)"/>
+</svg>
+<div class="node" style="left:44px;top:236px;width:180px;height:128px">
+ <div class="k">you</div><div class="n">terminal</div>
+ <div class="d">or a script using<br><span class="mono">vlx call -o json</span></div></div>
+<div class="node" style="left:294px;top:130px;width:358px;height:340px;border-color:#5b3fa8;background:linear-gradient(180deg,#1b1528,#151821)">
+ <div class="k" style="color:#A78BFA">vlx</div><div class="n">TUI + CLI</div>
+ <div class="d">Bubble Tea explorer · Cobra commands · Viper config</div>
+ <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:9px">
+  <div class="node" style="position:static;padding:10px 12px"><div class="n" style="font-size:14px">discovery</div><div class="d" style="font-size:12px">lists sockets,<br>never connects</div></div>
+  <div class="node" style="position:static;padding:10px 12px"><div class="n" style="font-size:14px">schema</div><div class="d" style="font-size:12px">skeletons &amp;<br>local validation</div></div>
+  <div class="node" style="position:static;padding:10px 12px;border-color:#2c6b48"><div class="n g" style="font-size:14px">safety gate</div><div class="d" style="font-size:12px">READ · WRITE · DANGER<br>read-only default</div></div>
+  <div class="node" style="position:static;padding:10px 12px"><div class="n" style="font-size:14px">sanitize</div><div class="d" style="font-size:12px">strips escapes,<br>redacts secrets</div></div>
+ </div></div>
+<div class="node" style="left:722px;top:206px;width:218px;height:188px">
+ <div class="k">library</div><div class="n">sdvarlink</div>
+ <div class="d"><span class="mono c">varlink</span> wire &amp; calls<br><span class="mono c">idl</span> parser<br>frame &amp; fd limits</div></div>
+<div class="node" style="left:1014px;top:148px;width:150px;height:84px"><div class="n" style="font-size:15px">systemd</div><div class="d" style="font-size:12px;margin-top:3px">io.systemd.*</div></div>
+<div class="node" style="left:1014px;top:258px;width:150px;height:84px"><div class="n" style="font-size:15px">any service</div><div class="d" style="font-size:12px;margin-top:3px">your Varlink API</div></div>
+<div class="node" style="left:1014px;top:378px;width:150px;height:84px;border-style:dashed"><div class="n" style="font-size:15px">vlx demo</div><div class="d" style="font-size:12px;margin-top:3px">built-in sample</div></div>
+<div class="lbl" style="left:948px;top:500px">AF_UNIX · JSON + \0</div>
+<div style="position:absolute;left:44px;bottom:30px;font-size:13.5px;color:#8a8496">Only <span class="mono c">client</span> and <span class="mono c">demo</span> touch sockets. Every call passes the safety gate before it reaches sdvarlink.</div>
+</body></html>

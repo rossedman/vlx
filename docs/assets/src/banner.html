@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1280px;height:400px;font-family:Inter,sans-serif;background:#0f1117;overflow:hidden}
+.bg{position:absolute;inset:0;background:
+ radial-gradient(700px 420px at 8% 0%,rgba(139,92,246,.28),transparent 70%),
+ radial-gradient(600px 400px at 100% 100%,rgba(34,211,238,.18),transparent 70%),
+ #0f1117}
+.grid{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(90deg,transparent 30%,#000 70%)}
+.left{position:absolute;left:56px;top:72px}
+.brand{display:flex;align-items:center;gap:28px}
+.brand img{width:118px;height:118px}
+.word{font:700 112px/1 'DejaVu Sans Mono',monospace;letter-spacing:-4px;background:linear-gradient(90deg,#C4B5FD,#8B5CF6 55%,#22D3EE);-webkit-background-clip:text;color:transparent}
+.tag{margin-top:30px;font-size:31px;color:#d9d4e3;font-weight:500;letter-spacing:-.3px}
+.tag b{color:#fff;font-weight:600}
+.chips{display:flex;gap:9px;margin-top:26px}
+.chip{font:13px 'DejaVu Sans Mono',monospace;color:#e3dfe9;border:1px solid #2f2a3b;background:rgba(26,22,34,.8);padding:7px 13px 7px 12px;border-radius:999px;display:flex;align-items:center;gap:10px}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.term{position:absolute;right:44px;top:46px;width:520px;height:308px;background:#12141b;border-radius:12px;border:1px solid #2a2635;box-shadow:0 30px 70px rgba(0,0,0,.6),0 0 0 1px rgba(139,92,246,.12);overflow:hidden;font:12px/1.5 'DejaVu Sans Mono',monospace;color:#e9e6ee}
+.bar{height:28px;background:#181a23;border-bottom:1px solid #262a36;display:flex;align-items:center;gap:7px;padding:0 12px}
+.bar span{width:10px;height:10px;border-radius:50%}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:7px 10px 5px}
+.logo{background:#7C3AED;color:#fff;font-weight:700;padding:0 6px}
+.ro{background:#30D475;color:#0f1117;font-weight:700;padding:0 6px}
+.panes{display:flex;gap:6px;padding:0 10px}
+.pane>div{white-space:pre}.pane{border:1px solid #3a3546;border-radius:6px;padding:4px 8px;height:226px}
+.pane.f{border-color:#A78BFA}
+.t{color:#8a8496;font-weight:700}.pane.f .t{color:#A78BFA}
+.sel{background:#7C3AED;color:#fff;font-weight:700;margin:0 -4px;padding:0 4px;display:flex;justify-content:space-between}
+.row{display:flex;justify-content:space-between}
+.g{color:#30D475}.a{color:#F5B83D}.r{color:#F2545B}.c{color:#22D3EE}.m{color:#8a8496}.v{color:#A78BFA}.w{color:#fff;font-weight:700}
+</style></head><body><div class="bg"></div><div class="grid"></div>
+<div class="left">
+ <div class="brand"><img src="../logo.svg"><div class="word">vlx</div></div>
+ <div class="tag"><b>The Varlink explorer</b> for your terminal</div>
+ <div class="chips">
+  <div class="chip"><i style="background:#A78BFA"></i>browse every interface</div>
+  <div class="chip"><i style="background:#22D3EE"></i>schema-aware calls</div>
+  <div class="chip"><i style="background:#30D475"></i>read-only by default</div>
+ </div>
+</div>
+<div class="term">
+ <div class="bar"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+ <div class="hdr"><div><span class="logo">vlx</span> <span class="w">/run/systemd/resolve/io.systemd.Resolve</span></div><span class="ro">READ-ONLY</span></div>
+ <div class="panes">
+  <div class="pane" style="width:112px"><div class="t">Services</div>
+   <div class="g">● <span class="w">Resolve</span></div><div class="m">○ Hostname</div><div class="m">○ Manager</div><div class="m">○ Machine</div><div class="m">○ Multiplexer</div><div class="m">○ Network</div><div class="m">○ Udev</div>
+  </div>
+  <div class="pane f" style="width:190px"><div class="t">Interfaces</div>
+   <div><span class="v">▾</span> <b>io.systemd.Resolve</b></div>
+   <div class="sel"><span>  ƒ ResolveHostname</span><span>READ</span></div>
+   <div class="row"><span>  <span class="v">ƒ</span> ResolveAddress</span><span class="g">READ</span></div>
+   <div class="row"><span>  <span class="v">⌁</span> BrowseServices</span><span class="g">READ</span></div>
+   <div class="row"><span>  <span class="c">τ</span> ResolvedAddress</span><span></span></div>
+   <div class="row"><span>  <span class="r">!</span> NoNameServers</span><span></span></div>
+   <div><span class="v">▸</span> <b>io.systemd.service</b></div>
+   <div class="row"><span>  <span class="v">ƒ</span> SetLogLevel</span><span class="a">WRITE</span></div>
+  </div>
+  <div class="pane" style="flex:1"><div class="t">Detail</div>
+   <div><span class="m">method</span> <span class="w">ResolveHostname</span></div>
+   <div><span class="g">READ</span> <span class="m">· single reply</span></div>
+   <div class="v" style="margin-top:6px;font-weight:700">Parameters</div>
+   <div> <span class="c">name</span>     <span class="c">string</span></div>
+   <div> <span class="c">ifindex</span>  <span class="c">?int</span></div>
+   <div> <span class="c">family</span>   <span class="c">?int</span></div>
+   <div class="v" style="margin-top:6px;font-weight:700">Returns</div>
+   <div> <span class="c">addresses</span> <span class="c">[]Resolved…</span></div>
+  </div>
+ </div>
+</div>
+</body></html>

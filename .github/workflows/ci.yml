@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-latest]
+        go: [stable]
+        include:
+          - os: ubuntu-24.04
+            go: oldstable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      # The CLI and TUI tests run against vlx's built-in demo service over a
+      # real Unix socket, so they need no systemd.
+      - name: Unit and end-to-end tests (race)
+        run: go test -race -count=1 -coverpkg=./... -coverprofile=coverage.out ./...
+      - name: Coverage is at least 90%
+        run: ./hack/check-coverage.sh coverage.out 90
+      - name: Smoke-test the binary
+        run: |
+          go build -o vlx ./cmd/vlx
+          ./vlx version
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          ./vlx demo --serve >/dev/null 2>&1 &
+          for _ in $(seq 50); do ./vlx list | grep -q io.vlx.demo && break; sleep 0.1; done
+          ./vlx call demo GetGreeting '{"name":"CI"}'
+          # Writes are refused in read-only mode with exit code 4.
+          status=0; ./vlx call demo SetDefaultLanguage '{"language":"german"}' || status=$?
+          test "$status" -eq 4
+          kill %1
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-24.04' && matrix.go == 'stable'
+        with:
+          name: coverage
+          path: coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+
+  goreleaser:
+    name: GoReleaser config
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check

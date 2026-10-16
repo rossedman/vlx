@@ -1,0 +1,17 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,sans-serif;color:#e9e6ee;background:#0f1117;overflow:hidden}
+.bg{position:absolute;inset:0;background:
+ radial-gradient(600px 380px at 0% 0%,rgba(139,92,246,.20),transparent 70%),
+ radial-gradient(600px 380px at 100% 100%,rgba(34,211,238,.13),transparent 70%),#0f1117}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:22px 22px}
+h1{position:absolute;left:44px;top:34px;font-size:15px;letter-spacing:2.5px;text-transform:uppercase;color:#A78BFA;font-weight:700}
+h2{position:absolute;left:44px;top:58px;font-size:26px;font-weight:600;letter-spacing:-.3px}
+.node{position:absolute;border-radius:14px;background:#151821;border:1px solid #2b2f3d;padding:16px 18px;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.node .k{font:700 11px 'DejaVu Sans Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:#8a8496;margin-bottom:6px}
+.node .n{font:700 19px 'DejaVu Sans Mono',monospace;color:#fff}
+.node .d{font-size:13.5px;color:#b9b4c4;margin-top:6px;line-height:1.45}
+.mono{font-family:'DejaVu Sans Mono',monospace}
+.pill{display:inline-block;font:600 11.5px 'DejaVu Sans Mono',monospace;padding:3px 8px;border-radius:6px;margin:6px 4px 0 0;background:#1d2130;border:1px solid #2f3344;color:#e3dfe9}
+.v{color:#A78BFA}.c{color:#22D3EE}.g{color:#30D475}.a{color:#F5B83D}.r{color:#F2545B}.m{color:#8a8496}
+svg.wires{position:absolute;inset:0;overflow:visible}
+.lbl{position:absolute;font:12px 'DejaVu Sans Mono',monospace;color:#8a8496;background:#0f1117;padding:2px 6px;border-radius:4px}

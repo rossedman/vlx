@@ -31,3 +31,11 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# vlx build outputs
+/bin/
+/dist/
+/site/
+/completions/
+/manpages/
+coverage.html

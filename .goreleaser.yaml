@@ -1,0 +1,132 @@
+# GoReleaser configuration for vlx.
+#
+#   goreleaser check                          # validate this file
+#   goreleaser release --snapshot --clean     # local snapshot build into dist/
+#
+# CI builds a snapshot on every branch push and publishes a GitHub release
+# for every v* tag (.github/workflows/release.yml).
+version: 2
+
+project_name: vlx
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+    - ./hack/completions.sh
+
+builds:
+  - id: vlx
+    main: ./cmd/vlx
+    binary: vlx
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/rossedman/vlx/internal/version.Version={{ .Version }}
+      - -X github.com/rossedman/vlx/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/rossedman/vlx/internal/version.Date={{ .CommitDate }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos: [linux, darwin]
+    goarch: [amd64, arm64, arm, riscv64, ppc64le, s390x]
+    goarm: ["7"]
+    ignore:
+      - { goos: darwin, goarch: arm }
+      - { goos: darwin, goarch: riscv64 }
+      - { goos: darwin, goarch: ppc64le }
+      - { goos: darwin, goarch: s390x }
+
+archives:
+  - id: vlx
+    ids: [vlx]
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - completions/*
+      - manpages/*
+
+nfpms:
+  - id: packages
+    ids: [vlx]
+    package_name: vlx
+    file_name_template: >-
+      {{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
+    vendor: Ross Edman
+    homepage: https://rossedman.github.io/vlx/
+    maintainer: Ross Edman <2628905+rossedman@users.noreply.github.com>
+    description: |-
+      vlx, the Varlink explorer: a terminal UI and CLI for browsing and
+      calling Varlink services such as systemd's io.systemd.* APIs.
+      Read-only by default.
+    license: MIT
+    section: utils
+    formats: [deb, rpm, apk]
+    contents:
+      - src: ./completions/vlx.bash
+        dst: /usr/share/bash-completion/completions/vlx
+      - src: ./completions/vlx.zsh
+        dst: /usr/share/zsh/site-functions/_vlx
+      - src: ./completions/vlx.fish
+        dst: /usr/share/fish/vendor_completions.d/vlx.fish
+      - src: ./manpages/*.1.gz
+        dst: /usr/share/man/man1/
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  # e.g. 0.1.1-snapshot.main.a1b2c3d
+  version_template: >-
+    {{ incpatch .Version }}-snapshot.{{ replace (replace .Branch "/" "-") "_" "-" }}.{{ .ShortCommit }}
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Safety
+      regexp: '^.*?safety(\(.+\))??!?:.+$'
+      order: 1
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 2
+    - title: Other changes
+      order: 999
+
+release:
+  github:
+    owner: rossedman
+    name: vlx
+  prerelease: auto
+  mode: replace
+  header: |
+    ## vlx {{ .Tag }}
+
+    Install with Go:
+
+    ```sh
+    go install github.com/rossedman/vlx/cmd/vlx@{{ .Tag }}
+    ```
+
+    or download an archive or a `.deb`/`.rpm`/`.apk` package below. Then run
+    `vlx demo` to try it, or `vlx` to explore your system.
+    See the [QuickStart](https://rossedman.github.io/vlx/getting-started/quickstart/).
+  footer: |
+    **Full changelog**: https://github.com/rossedman/vlx/compare/{{ .PreviousTag }}...{{ .Tag }}
