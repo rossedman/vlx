@@ -12,7 +12,7 @@ func newManCommand() *cobra.Command {
 		Use:    "man DIR",
 		Short:  "Generate man pages into DIR",
 		Hidden: true,
-		Args:   cobra.ExactArgs(1),
+		Args:   usageArgs(cobra.ExactArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := os.MkdirAll(args[0], 0o755); err != nil {
 				return err

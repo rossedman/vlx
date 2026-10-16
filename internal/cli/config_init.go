@@ -20,7 +20,10 @@ func newConfigInitCommand(a *app) *cobra.Command {
 		Long: `Write a commented config file with the default settings to the config path
 (or --config). The file is created with mode 0600: vlx refuses config files
 that others can write, because the config can enable writes.`,
-		Args: cobra.NoArgs,
+		Args: usageArgs(cobra.NoArgs),
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			return a.loadIfExists()
+		},
 		RunE: func(*cobra.Command, []string) error {
 			p := a.configFile
 			if p == "" {

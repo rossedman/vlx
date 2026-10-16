@@ -20,5 +20,6 @@ All notable changes to vlx are recorded here. The format follows
   confirmations for writes, typed confirmation for dangerous methods,
   terminal escape sanitisation, config permission checks.
 - `vlx demo`: a built-in sample service for learning and testing.
+- A 90% test-coverage minimum, enforced in CI and by `make cover`.
 - Releases for Linux and macOS on six architectures, with `.deb`, `.rpm` and
   `.apk` packages, completions and man pages.

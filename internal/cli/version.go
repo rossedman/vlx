@@ -13,7 +13,7 @@ func newVersionCommand(a *app) *cobra.Command {
 		Use:     "version",
 		GroupID: "other",
 		Short:   "Print version and build information",
-		Args:    cobra.NoArgs,
+		Args:    usageArgs(cobra.NoArgs),
 		RunE: func(*cobra.Command, []string) error {
 			info := version.Get()
 			if a.json() {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/rossedman/sdvarlink/varlink"
 
 	"github.com/rossedman/vlx/internal/client"
@@ -75,4 +77,14 @@ func IsSilent(err error) bool {
 // Hint returns advice for err, for main to print after the error.
 func Hint(err error) string {
 	return client.Hint(err)
+}
+
+// usageArgs makes argument-count errors usage errors (exit code 2).
+func usageArgs(check cobra.PositionalArgs) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if err := check(cmd, args); err != nil {
+			return usageError(err)
+		}
+		return nil
+	}
 }

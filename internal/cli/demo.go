@@ -26,7 +26,7 @@ the service, for example to try 'vlx call demo ...' from another terminal.`,
 		Example: `  vlx demo
   vlx demo --allow-writes
   vlx demo --serve`,
-		Args: cobra.NoArgs,
+		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var (
 				srv *demo.Server

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -22,15 +23,23 @@ type result struct {
 // run executes vlx with args against a fresh app, as main would.
 func run(t *testing.T, stdin string, args ...string) result {
 	t.Helper()
+	return runApp(t, stdin, false, args...)
+}
+
+// runApp is run with control over whether the streams look like a
+// terminal. Discovery only searches --search directories.
+func runApp(t *testing.T, stdin string, tty bool, args ...string) result {
+	t.Helper()
 	var out, errOut bytes.Buffer
 	v := viper.New()
 	config.SetDefaults(v)
-	a := &app{v: v, in: strings.NewReader(stdin), out: &out, errOut: &errOut}
+	a := &app{v: v, in: strings.NewReader(stdin), out: &out, errOut: &errOut, dirs: []string{}}
+	a.tty = func(any) bool { return tty }
 	cmd := newRootCommand(a)
 	cmd.SetArgs(args)
 	cmd.SetOut(&out)
 	cmd.SetErr(&errOut)
-	err := cmd.Execute()
+	err := cmd.ExecuteContext(context.Background())
 	if err != nil {
 		errOut.WriteString("vlx: " + err.Error() + "\n")
 	}

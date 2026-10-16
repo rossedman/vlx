@@ -25,6 +25,12 @@ type app struct {
 	in     io.Reader
 	out    io.Writer
 	errOut io.Writer
+
+	// tty overrides terminal detection for in, out and errOut; tests set
+	// it. nil means ask the operating system.
+	tty func(stream any) bool
+	// dirs replaces the default search directories; tests set it.
+	dirs []string
 }
 
 func newApp() *app {
@@ -35,7 +41,21 @@ func newApp() *app {
 
 // load resolves the configuration once flags are parsed.
 func (a *app) load() error {
-	cfg, err := config.Load(a.v, a.configFile)
+	return a.loadConfig(a.configFile)
+}
+
+// loadIfExists is load for commands that create the config file: a
+// --config path that does not exist yet is not an error.
+func (a *app) loadIfExists() error {
+	file := a.configFile
+	if _, err := os.Stat(file); err != nil {
+		file = ""
+	}
+	return a.loadConfig(file)
+}
+
+func (a *app) loadConfig(file string) error {
+	cfg, err := config.Load(a.v, file)
 	if err != nil {
 		return usageError(err)
 	}
@@ -54,8 +74,16 @@ func isTTY(f any) bool {
 	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }
 
-func (a *app) outIsTTY() bool { return isTTY(a.out) }
-func (a *app) inIsTTY() bool  { return isTTY(a.in) }
+func (a *app) isTTY(stream any) bool {
+	if a.tty != nil {
+		return a.tty(stream)
+	}
+	return isTTY(stream)
+}
+
+func (a *app) outIsTTY() bool { return a.isTTY(a.out) }
+func (a *app) inIsTTY() bool  { return a.isTTY(a.in) }
+func (a *app) errIsTTY() bool { return a.isTTY(a.errOut) }
 
 func (a *app) json() bool { return a.cfg.Output == "json" }
 
@@ -68,7 +96,7 @@ func (a *app) clientOptions() client.Options {
 
 func (a *app) discoveryOptions() discovery.Options {
 	extra := append(append([]string(nil), a.cfg.SearchPaths...), a.search...)
-	return discovery.Options{Extra: extra}
+	return discovery.Options{Dirs: a.dirs, Extra: extra}
 }
 
 // resolve turns a SERVICE argument into a socket path.

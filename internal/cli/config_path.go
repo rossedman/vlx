@@ -12,7 +12,7 @@ func newConfigPathCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "path",
 		Short: "Print the config file path",
-		Args:  cobra.NoArgs,
+		Args:  usageArgs(cobra.NoArgs),
 		RunE: func(*cobra.Command, []string) error {
 			p := a.cfg.File
 			if p == "" {

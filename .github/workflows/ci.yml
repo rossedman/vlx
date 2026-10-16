@@ -32,7 +32,9 @@ jobs:
       # The CLI and TUI tests run against vlx's built-in demo service over a
       # real Unix socket, so they need no systemd.
       - name: Unit and end-to-end tests (race)
-        run: go test -race -count=1 -coverprofile=coverage.out ./...
+        run: go test -race -count=1 -coverpkg=./... -coverprofile=coverage.out ./...
+      - name: Coverage is at least 90%
+        run: ./hack/coverage.sh coverage.out 90
       - name: Smoke-test the binary
         run: |
           go build -o vlx ./cmd/vlx

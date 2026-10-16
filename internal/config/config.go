@@ -61,13 +61,18 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault(KeyOutput, "text")
 }
 
-// DefaultPath is $XDG_CONFIG_HOME/vlx/config.yaml (os.UserConfigDir).
+// DefaultPath is $XDG_CONFIG_HOME/vlx/config.yaml, or
+// ~/.config/vlx/config.yaml when XDG_CONFIG_HOME is unset — on macOS too,
+// like most command-line tools, rather than ~/Library/Application Support.
 func DefaultPath() string {
-	dir, err := os.UserConfigDir()
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && filepath.IsAbs(xdg) {
+		return filepath.Join(xdg, "vlx", "config.yaml")
+	}
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(dir, "vlx", "config.yaml")
+	return filepath.Join(home, ".config", "vlx", "config.yaml")
 }
 
 // Load reads the config file (explicit, or the default path if it exists)

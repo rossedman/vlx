@@ -31,10 +31,13 @@ test: ## Run all tests
 race: ## Run all tests with the race detector
 	$(GO) test -race -count=1 ./...
 
+COVERAGE_MIN ?= 90
+
 .PHONY: cover
-cover: ## Write a coverage report to coverage.html
-	$(GO) test -coverprofile=coverage.out ./...
+cover: ## Check coverage is at least COVERAGE_MIN% and write coverage.html
+	$(GO) test -count=1 -coverpkg=./... -coverprofile=coverage.out ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html
+	./hack/coverage.sh coverage.out $(COVERAGE_MIN)
 
 .PHONY: lint
 lint: ## Run gofmt, go vet and golangci-lint

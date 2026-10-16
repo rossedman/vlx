@@ -26,6 +26,10 @@ type harness struct {
 	m *Model
 }
 
+func init() {
+	noBlink = true
+}
+
 func newHarness(t *testing.T, allowWrites bool) (*harness, string) {
 	t.Helper()
 	srv, err := demo.ListenTemp()

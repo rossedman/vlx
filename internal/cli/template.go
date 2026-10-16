@@ -24,7 +24,7 @@ METHOD may be qualified (io.systemd.Hostname.Describe) or bare (Describe)
 when only one interface of the service has it.`,
 		Example: `  vlx template resolve ResolveHostname > params.json
   vlx call resolve ResolveHostname -f params.json`,
-		Args:              cobra.ExactArgs(2),
+		Args:              usageArgs(cobra.ExactArgs(2)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path, err := a.resolve(args[0])

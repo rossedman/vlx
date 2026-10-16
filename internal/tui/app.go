@@ -147,6 +147,7 @@ func newFilterInput() textinput.Model {
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(render.Brand)
 	ti.Placeholder = "filter"
 	ti.CharLimit = 64
+	staticCursorInTests(&ti.Cursor)
 	return ti
 }
 

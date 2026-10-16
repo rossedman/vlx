@@ -97,6 +97,7 @@ func (m *Model) openCall(r row) tea.Cmd {
 	ed.FocusedStyle.Text = textStyle
 	ed.BlurredStyle.Text = mutedStyle
 	ed.KeyMap.TransposeCharacterBackward.SetEnabled(false) // ctrl+t toggles more
+	staticCursorInTests(&ed.Cursor)
 	ed.SetValue(skel)
 	if d, ok := m.drafts[c.qualified]; ok {
 		ed.SetValue(d)
@@ -107,6 +108,7 @@ func (m *Model) openCall(r row) tea.Cmd {
 	ti.PromptStyle = errStyle
 	ti.Placeholder = "method name"
 	ti.CharLimit = 128
+	staticCursorInTests(&ti.Cursor)
 	c.confirmInput = ti
 	m.call = c
 	m.screen = screenCall

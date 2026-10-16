@@ -3,18 +3,27 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/rossedman/vlx/internal/cli"
 )
 
 func main() {
-	err := cli.NewRootCommand().Execute()
+	os.Exit(run(os.Args[1:], os.Stderr))
+}
+
+// run executes vlx with args and returns the exit code, reporting errors
+// (with a hint, when there is one) on stderr.
+func run(args []string, stderr io.Writer) int {
+	cmd := cli.NewRootCommand()
+	cmd.SetArgs(args)
+	err := cmd.Execute()
 	if err != nil && !cli.IsSilent(err) {
-		fmt.Fprintln(os.Stderr, "vlx:", err)
+		fmt.Fprintln(stderr, "vlx:", err)
 		if hint := cli.Hint(err); hint != "" {
-			fmt.Fprintln(os.Stderr, "hint:", hint)
+			fmt.Fprintln(stderr, "hint:", hint)
 		}
 	}
-	os.Exit(cli.ExitCode(err))
+	return cli.ExitCode(err)
 }

@@ -12,7 +12,7 @@ func newConfigShowCommand(a *app) *cobra.Command {
 		Use:   "show",
 		Short: "Print the effective configuration",
 		Long:  "Print the configuration after applying defaults, the file, environment variables and flags.",
-		Args:  cobra.NoArgs,
+		Args:  usageArgs(cobra.NoArgs),
 		RunE: func(*cobra.Command, []string) error {
 			if a.json() {
 				return writeJSON(a.out, map[string]any{

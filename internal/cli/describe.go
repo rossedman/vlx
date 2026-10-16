@@ -21,7 +21,7 @@ interface, as the service describes it. Output is highlighted on a terminal.`,
 		Example: `  vlx describe hostname
   vlx describe resolve io.systemd.Resolve
   vlx describe hostname -o json`,
-		Args:              cobra.RangeArgs(1, 2),
+		Args:              usageArgs(cobra.RangeArgs(1, 2)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path, err := a.resolve(args[0])

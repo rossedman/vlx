@@ -22,7 +22,7 @@ Press ? inside the explorer for every key binding.`,
 		Example: `  vlx explore
   vlx explore /run/systemd/io.systemd.Hostname
   vlx explore resolve --allow-writes`,
-		Args:              cobra.MaximumNArgs(1),
+		Args:              usageArgs(cobra.MaximumNArgs(1)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runExplore(cmd, a, args)
@@ -52,6 +52,6 @@ func (a *app) runTUI(args []string, note string, target ...string) error {
 		opts.Target = p
 	}
 	m := tui.New(opts)
-	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	_, err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithInput(a.in), tea.WithOutput(a.out)).Run()
 	return err
 }

@@ -84,9 +84,13 @@ func waitFor(ch chan tea.Msg) tea.Cmd {
 	}
 }
 
+// clipboard writes text to the system clipboard. It uses OSC 52, which
+// works over SSH in most terminals; tests replace it.
+var clipboard = termenv.Copy
+
 func copyCmd(text, what string) tea.Cmd {
 	return func() tea.Msg {
-		termenv.Copy(text) // OSC 52; works over SSH in most terminals
+		clipboard(text)
 		return flashMsg{text: "Copied " + what + " to the clipboard"}
 	}
 }

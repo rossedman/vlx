@@ -51,8 +51,12 @@ See [Architecture](https://rossedman.github.io/vlx/project/architecture/).
 ## Before you push
 
 ```sh
-make lint test
+make lint test cover
 ```
+
+`make cover` fails if total test coverage drops below **90%** (measured
+across packages), and writes `coverage.html` so you can see what is missing.
+CI enforces the same minimum.
 
 CI runs the tests with the race detector on Linux (amd64, arm64) and macOS,
 golangci-lint, and a GoReleaser snapshot build for every platform.

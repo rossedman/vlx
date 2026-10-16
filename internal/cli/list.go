@@ -36,7 +36,7 @@ and asks for its GetInfo, which is read-only.`,
 		Example: `  vlx list
   vlx list --probe
   vlx list -o json | jq -r '.[].path'`,
-		Args: cobra.NoArgs,
+		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			sockets := discovery.Discover(a.discoveryOptions())
 			entries := make([]listEntry, len(sockets))

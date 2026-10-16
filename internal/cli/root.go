@@ -32,7 +32,7 @@ of the name) of a discovered socket, e.g. "hostname".`,
   vlx demo                    # try vlx with a built-in sample service
   vlx call hostname io.systemd.Hostname.Describe`,
 		Version:       version.Get().String(),
-		Args:          cobra.MaximumNArgs(1),
+		Args:          usageArgs(cobra.MaximumNArgs(1)),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
@@ -43,6 +43,9 @@ of the name) of a discovered socket, e.g. "hostname".`,
 		},
 	}
 	root.SetVersionTemplate("vlx {{.Version}}\n")
+	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return usageError(err)
+	})
 
 	f := root.PersistentFlags()
 	f.StringVar(&a.configFile, "config", "", "config file (default $XDG_CONFIG_HOME/vlx/config.yaml)")

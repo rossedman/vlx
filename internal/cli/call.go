@@ -52,7 +52,7 @@ reply as it arrives. Exit status is 3 when the service returns an error,
   echo '{"name":"example.com"}' | vlx call resolve ResolveHostname -
   vlx call multiplexer GetUserRecord '{"service":"io.systemd.Multiplexer"}' --more
   vlx call demo SetDefaultLanguage '{"language":"german"}' --allow-writes --yes`,
-		Args:              cobra.RangeArgs(2, 3),
+		Args:              usageArgs(cobra.RangeArgs(2, 3)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCall(cmd.Context(), a, f, args)
@@ -228,7 +228,7 @@ func (a *app) checkSafety(method, path, params string, f callFlags) error {
 	if d.Confirm == safety.ConfirmNone || f.yes {
 		return nil
 	}
-	if !a.inIsTTY() || !isTTY(os.Stderr) {
+	if !a.inIsTTY() || !a.errIsTTY() {
 		return &ExitError{Code: ExitRefused, Err: fmt.Errorf("%s is a %s method; confirm with --yes when not running interactively", method, v.Class)}
 	}
 	fmt.Fprintf(a.errOut, "%s %s call\n  method  %s\n  socket  %s\n  params  %s\n  reason  %s\n",

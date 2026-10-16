@@ -14,8 +14,9 @@ settings come from four places; the first that sets a value wins:
 
 ## The config file
 
-The file lives at `$XDG_CONFIG_HOME/vlx/config.yaml` (usually
-`~/.config/vlx/config.yaml`); `--config FILE` uses another. Create a
+The file lives at `$XDG_CONFIG_HOME/vlx/config.yaml`, or
+`~/.config/vlx/config.yaml` when `XDG_CONFIG_HOME` is unset — on macOS too;
+`--config FILE` uses another (`vlx config init --config FILE` creates it). Create a
 commented starter file with:
 
 ```sh

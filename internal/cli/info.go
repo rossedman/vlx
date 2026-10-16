@@ -18,7 +18,7 @@ func newInfoCommand(a *app) *cobra.Command {
 is and which interfaces it implements. This is always read-only.`,
 		Example: `  vlx info hostname
   vlx info /run/systemd/io.systemd.Manager -o json`,
-		Args:              cobra.ExactArgs(1),
+		Args:              usageArgs(cobra.ExactArgs(1)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path, err := a.resolve(args[0])
