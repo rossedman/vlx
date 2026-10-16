@@ -47,7 +47,7 @@ jobs:
           status=0; ./vlx call demo SetDefaultLanguage '{"language":"german"}' || status=$?
           test "$status" -eq 4
           kill %1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-24.04' && matrix.go == 'stable'
         with:
           name: coverage
