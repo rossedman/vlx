@@ -37,9 +37,14 @@ jobs:
         run: |
           go build -o vlx ./cmd/vlx
           ./vlx version
-          sock=$(./vlx demo --serve 2>/dev/null & sleep 1; ls /tmp/vlx-demo-*/io.vlx.demo | head -1)
-          ./vlx call "$sock" io.vlx.demo.Greeter.GetGreeting '{"name":"CI"}'
-          ./vlx call "$sock" io.vlx.demo.Greeter.SetDefaultLanguage '{"language":"german"}' && exit 1 || test $? -eq 4
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+          ./vlx demo --serve >/dev/null 2>&1 &
+          for _ in $(seq 50); do ./vlx list | grep -q io.vlx.demo && break; sleep 0.1; done
+          ./vlx call demo GetGreeting '{"name":"CI"}'
+          # Writes are refused in read-only mode with exit code 4.
+          status=0; ./vlx call demo SetDefaultLanguage '{"language":"german"}' || status=$?
+          test "$status" -eq 4
+          kill %1
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-24.04' && matrix.go == 'stable'
         with:
