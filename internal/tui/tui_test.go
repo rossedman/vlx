@@ -1,535 +1,585 @@
 package tui
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi"
-	"github.com/muesli/termenv"
-	"github.com/spf13/viper"
-
-	"github.com/rossedman/vlx/internal/config"
-	"github.com/rossedman/vlx/internal/demo"
-	"github.com/rossedman/vlx/internal/discovery"
 )
 
-// harness drives a Model synchronously: it runs commands, feeds their
-// messages back, and drops timer ticks so tests do not loop forever.
-type harness struct {
-	t *testing.T
-	m *Model
-}
-
-func init() {
-	noBlink = true
-	previewDelay = time.Millisecond
-}
-
-func newHarness(t *testing.T, allowWrites bool) (*harness, string) {
+// captureClipboard records what copy commands put on the clipboard.
+func captureClipboard(t *testing.T) *[]string {
 	t.Helper()
-	srv, err := demo.ListenTemp()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { srv.Close() })
-	v := viper.New()
-	config.SetDefaults(v)
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	cfg, err := config.Load(v, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.AllowWrites = allowWrites
-	m := New(Options{
-		Config:    cfg,
-		Target:    srv.Path(),
-		Discovery: discovery.Options{Dirs: []string{}, Extra: []string{filepath.Dir(srv.Path())}},
-		Note:      "demo service",
-	})
-	screenshotMode(m)
-	h := &harness{t: t, m: m}
-	h.send(tea.WindowSizeMsg{Width: 140, Height: 40})
-	h.run(m.Init())
-	return h, srv.Path()
+	var got []string
+	old := clipboard
+	clipboard = func(s string) { got = append(got, s) }
+	t.Cleanup(func() { clipboard = old })
+	return &got
 }
 
-// screenshotMode renders in true colour on a dark background, as a
-// terminal would, when screenshots are being captured.
-func screenshotMode(m *Model) {
-	if os.Getenv("VLX_SCREENSHOT_DIR") != "" {
-		lipgloss.SetColorProfile(termenv.TrueColor)
-		lipgloss.SetHasDarkBackground(true)
-		m.root = false
-	}
-}
-
-func (h *harness) run(cmd tea.Cmd) {
-	queue := []tea.Cmd{cmd}
-	for len(queue) > 0 {
-		c := queue[0]
-		queue = queue[1:]
-		if c == nil {
-			continue
-		}
-		done := make(chan tea.Msg, 1)
-		go func() { done <- c() }()
-		var msg tea.Msg
-		select {
-		case msg = <-done:
-		case <-time.After(800 * time.Millisecond):
-			continue // a timer (flash expiry, cursor blink): abandon it
-		}
-		switch msg := msg.(type) {
-		case nil, spinner.TickMsg, flashClearMsg:
-			continue
-		case tea.BatchMsg:
-			queue = append(queue, msg...)
-			continue
-		}
-		if name := typeName(msg); strings.HasPrefix(name, "tea.") || strings.HasPrefix(name, "cursor.") {
-			continue // window title, cursor blinks and other timers
-		}
-		_, next := h.m.Update(msg)
-		queue = append(queue, next)
-	}
-}
-
-func typeName(v any) string {
-	return strings.TrimPrefix(strings.TrimPrefix(fmtType(v), "*"), "")
-}
-
-func (h *harness) send(msg tea.Msg) {
-	_, cmd := h.m.Update(msg)
-	h.run(cmd)
-}
-
-func (h *harness) keys(keys ...string) {
-	for _, k := range keys {
-		var msg tea.KeyMsg
-		switch k {
-		case "enter":
-			msg = tea.KeyMsg{Type: tea.KeyEnter}
-		case "esc":
-			msg = tea.KeyMsg{Type: tea.KeyEsc}
-		case "tab":
-			msg = tea.KeyMsg{Type: tea.KeyTab}
-		case "up":
-			msg = tea.KeyMsg{Type: tea.KeyUp}
-		case "down":
-			msg = tea.KeyMsg{Type: tea.KeyDown}
-		case "ctrl+s":
-			msg = tea.KeyMsg{Type: tea.KeyCtrlS}
-		case "ctrl+t":
-			msg = tea.KeyMsg{Type: tea.KeyCtrlT}
-		case "ctrl+o":
-			msg = tea.KeyMsg{Type: tea.KeyCtrlO}
-		case "ctrl+r":
-			msg = tea.KeyMsg{Type: tea.KeyCtrlR}
-		case "ctrl+j":
-			msg = tea.KeyMsg{Type: tea.KeyCtrlJ}
-		case "right":
-			msg = tea.KeyMsg{Type: tea.KeyRight}
-		default:
-			msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
-		}
-		h.send(msg)
-	}
-}
-
-func (h *harness) view() string {
-	return ansi.Strip(h.m.View())
-}
-
-// selectMethod moves the interfaces cursor to the named method.
-func (h *harness) selectMethod(name string) {
+// call returns the method page's call, failing if there is none.
+func (h *harness) call() *callState {
 	h.t.Helper()
-	for i, r := range h.m.rows {
-		if r.kind == rowMethod && r.method.Name == name {
-			h.m.memCursor = i
-			h.m.focus = paneMembers
-			h.m.refreshDetail()
-			return
-		}
+	c := h.m.currentCall()
+	if c == nil {
+		h.t.Fatalf("not on a method page:\n%s", h.view())
 	}
-	h.t.Fatalf("method %s not in tree", name)
+	return c
 }
 
-func (h *harness) screenshot(name string) {
-	dir := os.Getenv("VLX_SCREENSHOT_DIR")
-	if dir == "" {
-		return
+// run types a command line and presses enter.
+func (h *harness) line(s string) {
+	h.t.Helper()
+	if !h.m.cmd.focused {
+		h.keys("ctrl+k")
 	}
-	if err := os.WriteFile(filepath.Join(dir, name+".ans"), []byte(h.m.View()), 0o644); err != nil {
-		h.t.Fatal(err)
-	}
-}
-
-func TestBrowseDemo(t *testing.T) {
-	h, path := newHarness(t, false)
-	if h.m.svc == nil {
-		t.Fatalf("service not opened; state %+v", h.m.state[path])
-	}
-	v := h.view()
-	for _, want := range []string{"READ-ONLY", "io.vlx.demo.Greeter", "GetGreeting", "READ", "demo service"} {
-		if !strings.Contains(v, want) {
-			t.Errorf("view lacks %q:\n%s", want, v)
-		}
-	}
-	// The first method is selected and described.
-	if r, _ := h.m.selectedRow(); r.method == nil || r.method.Name != "GetGreeting" {
-		t.Fatalf("selected %+v", r)
-	}
-	if !strings.Contains(v, "Who to greet.") {
-		t.Errorf("detail lacks parameter docs:\n%s", v)
-	}
-	h.screenshot("browse")
-
-	// Filter the tree.
-	h.keys("/", "S", "u", "p", "p", "l", "i", "e", "r", "enter")
-	if r, _ := h.m.selectedRow(); r.name() != "GetSupplier" {
-		t.Errorf("filter selected %q", r.name())
-	}
-	h.keys("esc")
-	if h.m.memFilter.Value() != "" {
-		t.Error("esc did not clear filter")
-	}
-
-	// IDL view.
-	h.selectMethod("ListItems")
-	h.keys("i")
-	if !strings.Contains(h.view(), "interface io.vlx.demo.Inventory") {
-		t.Errorf("IDL view:\n%s", h.view())
-	}
-	h.keys("i")
-
-	// Help.
-	h.keys("?")
-	if !strings.Contains(h.view(), "Symbols") {
-		t.Error("help not shown")
-	}
-	h.screenshot("help")
-	h.keys("esc")
-	if h.m.screen != screenBrowse {
-		t.Error("esc did not leave help")
-	}
-}
-
-func TestCallReadMethod(t *testing.T) {
-	h, _ := newHarness(t, false)
-	h.selectMethod("GetGreeting")
+	h.m.cmd.input.SetValue("")
+	h.typ(s)
 	h.keys("enter")
-	if h.m.screen != screenCall {
-		t.Fatal("not on call screen")
-	}
-	c := h.m.call
-	if c.validErr != nil {
-		t.Fatalf("skeleton invalid: %v", c.validErr)
-	}
-	c.setParams(`{"name": "Ada", "language": "spanish"}`)
-	h.keys("ctrl+s")
-	if c.err != nil || c.total != 1 {
-		t.Fatalf("call: total %d err %v", c.total, c.err)
-	}
-	if !strings.Contains(h.view(), "¡Hola, Ada!") {
-		t.Errorf("reply not shown:\n%s", h.view())
-	}
-	h.screenshot("call")
+}
 
-	// Errors are shown with their IDL docs.
-	c.setParams(`{"name": ""}`)
-	h.keys("ctrl+s")
-	if !strings.Contains(h.view(), "io.vlx.demo.Greeter.EmptyName") || !strings.Contains(h.view(), "The name was empty.") {
-		t.Errorf("error not shown:\n%s", h.view())
+func TestHomeGroupsAndPreview(t *testing.T) {
+	h, _ := newBrowseHarness(t, true)
+	h.contains("Services", "2 Varlink services on atlas", "DEMO", "OTHER", "io.vlx.demo", "a greeter and a tiny inventory", "READ-ONLY")
+	h.screenshot("home")
+	// The first service is previewed as soon as the list appears.
+	h.contains("10 methods")
+	if strings.Count(h.view(), "10 methods") != 1 {
+		t.Fatal("previewed more than the selected service")
 	}
+	h.keys("down")
+	if strings.Count(h.view(), "10 methods") != 2 {
+		t.Fatalf("moving did not preview the next service:\n%s", h.view())
+	}
+	h.keys("home", "end", "pgup", "pgdown", "up")
+	if it, _ := h.m.selected(h.m.page()); it.sock.Name != "io.vlx.demo" {
+		t.Fatalf("selected %q", it.sock.Name)
+	}
+	// A stale preview is ignored.
+	h.send(previewMsg{seq: -1, path: "/nowhere"})
+}
 
-	// Invalid parameters are not sent.
-	c.setParams(`{"name": 1}`)
-	sent := c.id
-	h.keys("ctrl+s")
-	if c.id != sent {
-		t.Error("invalid parameters were sent")
+func TestNoPreview(t *testing.T) {
+	h, _ := newBrowseHarness(t, false)
+	h.keys("down")
+	h.lacks("methods")
+	h.keys("ctrl+k")
+	h.typ("get")
+	h.contains("No matches", "preview is off")
+	// A full line still works: it introspects the service first.
+	h.line("demo GetGreeting name=Ada")
+	h.contains("Hello, Ada!")
+}
+
+func TestDrillDownWithKeys(t *testing.T) {
+	h, _ := newBrowseHarness(t, true, "io.vlx.demo")
+	h.keys("enter")
+	h.contains("Services › io.vlx.demo", "▾ io.vlx.demo.Greeter", "GetGreeting", "Returns a greeting for someone.", "▸ org.varlink.service")
+	h.screenshot("service")
+	if it, _ := h.m.selected(h.m.page()); it.kind != itemMethod || it.method.Name != "GetGreeting" {
+		t.Fatalf("first method not selected: %+v", it)
 	}
+	// Collapse and expand the interface.
+	h.keys("up", " ")
+	h.lacks("GetGreeting")
+	h.keys(" ")
+	h.contains("GetGreeting")
+	// Space on a method does nothing; enter opens it.
+	h.keys("down", " ", "enter")
+	h.contains("Services › io.vlx.demo › GetGreeting", "Parameters", "name", "Who to greet.", "Nothing sent yet", "vlx call demo GetGreeting")
+	if v := h.m.cmd.input.Value(); v != "demo GetGreeting name=''" {
+		t.Fatalf("command line = %q", v)
+	}
+	h.typ("Ada")
+	h.screenshot("form")
+	if v := h.m.cmd.input.Value(); v != "demo GetGreeting name=Ada" {
+		t.Fatalf("command line does not mirror the form: %q", v)
+	}
+	h.keys("ctrl+s")
+	h.contains("Hello, Ada!", "✓ 1 reply")
+	h.screenshot("method")
 	h.keys("esc")
-	if h.m.screen != screenBrowse || h.m.drafts["io.vlx.demo.Greeter.GetGreeting"] != `{"name": 1}` {
-		t.Error("esc did not return with a saved draft")
+	if h.m.page().kind != pageService {
+		t.Fatal("esc did not go up to the service")
+	}
+	h.keys("left")
+	if h.m.page().kind != pageHome {
+		t.Fatal("left did not go up to home")
+	}
+	h.contains("RECENT CALLS", "GetGreeting", "name=Ada", "1 reply")
+	h.keys("esc") // nothing above home
+	// The recent call reopens with its arguments, unsent.
+	h.keys("home", "enter")
+	c := h.call()
+	if v := c.form.args(); len(v) != 1 || v[0].Value != "Ada" {
+		t.Fatalf("args not restored: %+v", v)
 	}
 }
 
-func TestStreamAndRedaction(t *testing.T) {
-	h, _ := newHarness(t, false)
-	h.selectMethod("WatchCountdown")
-	h.keys("c")
-	c := h.m.call
-	if !c.more {
-		t.Fatal("more not forced for a streaming method")
+func TestCommandLineRunsCalls(t *testing.T) {
+	h, _ := newBrowseHarness(t, true, "io.vlx.demo")
+	h.line("demo GetGreeting name=Ada language=german")
+	h.contains("Hallo, Ada!")
+	c := h.call()
+	if !h.m.cmd.focused || h.m.cmd.input.Value() != "demo GetGreeting name=Ada language=german" {
+		t.Fatalf("command line after a run: focused=%v %q", h.m.cmd.focused, h.m.cmd.input.Value())
 	}
-	c.setParams(`{"from": 3, "intervalMilliseconds": 50}`)
-	h.keys("ctrl+s")
-	if c.total != 4 || c.err != nil {
-		t.Fatalf("stream: total %d err %v", c.total, c.err)
+	// Editing the line edits the form, and ⏎ sends again.
+	h.keys("backspace", "backspace", "backspace", "backspace", "backspace", "backspace")
+	h.typ("spa")
+	if ff := c.form.fields[1]; ff.choices[ff.choice] != "spanish" {
+		t.Fatalf("form did not follow the line: %s", ff.choices[ff.choice])
 	}
-	h.screenshot("stream")
+	h.keys("enter")
+	h.contains("¡Hola, Ada!", "EARLIER ON THIS PAGE", "language=german")
+	// A bad value is reported and leaves the form alone.
+	h.typ(" nope=1")
+	h.contains("unknown parameter \"nope\"")
+	h.keys("esc")
+	if h.m.cmd.focused || h.m.cmd.input.Value() != "demo GetGreeting name=Ada language=spanish" {
+		t.Fatalf("esc did not restore the line: %q", h.m.cmd.input.Value())
+	}
+	// ↑ brings back earlier lines.
+	h.keys("tab")
+	h.keys("up", "up")
+	if v := h.m.cmd.input.Value(); v != "demo GetGreeting name=Ada language=german" {
+		t.Fatalf("recall = %q", v)
+	}
+	h.keys("down", "down", "down")
+	h.keys("esc")
+
+	// A method with no parameters runs straight away; so does a bare method
+	// name or an interface name in place of the service.
+	h.line("ListLanguages")
+	h.contains("english", "japanese")
+	h.line("greeter GetGreeting name=Bo")
+	h.contains("Hello, Bo!")
+	h.line("io.vlx.demo.Greeter.GetGreeting name=Cy")
+	h.contains("Hello, Cy!")
+}
+
+func TestCommandLineSuggestions(t *testing.T) {
+	h, _ := newBrowseHarness(t, true, "io.vlx.demo", "com.example.Beta")
+	h.keys("down") // index the second service too
+	h.typ("watch")
+	h.contains("matches for watch", "WatchCountdown", "from int")
+	if !h.m.cmd.focused {
+		t.Fatal("typing did not focus the command line")
+	}
+	h.screenshot("search")
+	// ⇥ completes; the popup then lists the parameters.
+	h.keys("tab")
+	if v := h.m.cmd.input.Value(); !strings.HasSuffix(v, " WatchCountdown ") {
+		t.Fatalf("completed to %q", v)
+	}
+	h.contains("from=not set", "⏎ opens the method page")
+	h.keys("enter")
+	if c := h.call(); c.sent {
+		t.Fatal("opening a method with parameters sent it")
+	}
 	h.keys("esc", "esc")
 
-	h.selectMethod("GetSupplier")
-	h.keys("c")
-	c = h.m.call
-	c.setParams(`{"id": 1}`)
-	h.keys("ctrl+s")
-	v := h.view()
-	if strings.Contains(v, "demo-13556") || !strings.Contains(v, "«redacted»") {
-		t.Errorf("token not redacted:\n%s", v)
+	// Picking a match with ↓ and ⏎ jumps to it.
+	h.typ("dimensions")
+	h.keys("down", "up", "down", "up", "enter")
+	h.contains("type Dimensions", "Fields", "width")
+	h.keys("ctrl+d")
+	h.contains("interface io.vlx.demo.Inventory", "method GetItem")
+	h.keys("esc", "esc", "esc")
+
+	// The top match stands in for a line that names nothing exactly.
+	h.typ("nosuchi")
+	h.keys("enter")
+	h.contains("error NoSuchItem", "No item has this id.")
+	h.keys("esc", "esc")
+	h.typ("beta")
+	h.keys("enter")
+	h.contains("Services › com.example.Beta")
+	h.keys("esc")
+	h.typ("io.vlx.demo.Inventory")
+	h.keys("enter")
+	h.contains("io.vlx.demo.Inventory")
+	h.keys("esc")
+
+	// Nothing matches.
+	h.typ("zzzz")
+	h.contains("No matches")
+	h.keys("enter")
+	h.contains("no socket named")
+	h.keys("esc")
+	h.lacks("No matches")
+}
+
+func TestCommandLineErrors(t *testing.T) {
+	h, path := newHarness(t, false)
+	h.line("demo Nope")
+	h.contains("has no method \"Nope\"", "GetGreeting")
+	h.line("demo GetGreeting name='unterminated")
+	h.contains("unterminated quote")
+	h.line("demo GetGreeting bogus=1")
+	h.contains("unknown parameter \"bogus\"")
+	// The method page opened anyway, so the user can fix it.
+	h.call()
+	h.line("demo")
+	if h.m.page().kind != pageService || h.m.page().path != path {
+		t.Fatal("a service name alone did not open the service")
 	}
-	h.keys("R")
-	if !strings.Contains(h.view(), "demo-13556") {
-		t.Errorf("R did not reveal:\n%s", h.view())
-	}
+	h.line(path + " GetGreeting name=Ada")
+	h.contains("Hello, Ada!")
+	h.line("   ")
+	h.line("/nowhere/at/all Describe")
+	h.contains("does not exist")
 }
 
 func TestReadOnlyRefusesWrites(t *testing.T) {
 	h, _ := newHarness(t, false)
-	h.selectMethod("SetDefaultLanguage")
-	h.keys("enter", "ctrl+s")
-	c := h.m.call
+	h.line("demo SetDefaultLanguage language=german")
+	c := h.call()
 	if c.sent || c.refused == "" || c.confirm != confirmNone {
-		t.Fatalf("write was not refused: %+v", c)
+		t.Fatalf("write was not refused: sent=%v refused=%q", c.sent, c.refused)
 	}
-	if !strings.Contains(h.view(), "Not sent") {
-		t.Errorf("refusal not shown:\n%s", h.view())
-	}
+	h.contains("⊘ not sent", "--allow-writes", "⊘ read-only")
 	h.screenshot("refused")
+	// Oneway turns a READ method into a write, so it is refused too.
+	h.line("demo GetGreeting name=Ada")
+	h.keys("esc", "ctrl+o", "ctrl+s")
+	if c := h.call(); !c.oneway || c.sent || c.refused == "" {
+		t.Fatal("oneway READ call was not refused")
+	}
 }
 
 func TestWritesNeedConfirmation(t *testing.T) {
 	h, _ := newHarness(t, true)
-	h.selectMethod("SetDefaultLanguage")
-	h.keys("enter")
-	c := h.m.call
-	h.keys("ctrl+s")
+	h.contains("WRITES ENABLED")
+	h.line("demo SetDefaultLanguage language=german")
+	c := h.call()
 	if c.confirm != confirmYes {
 		t.Fatal("no confirmation for WRITE")
 	}
-	if !strings.Contains(h.view(), "Send this WRITE call?") {
-		t.Errorf("dialog not shown:\n%s", h.view())
+	h.contains("Send this WRITE call?", "y send")
+	h.screenshot("confirm")
+	h.keys("x", "n")
+	if c.sent || c.confirm != confirmNone {
+		t.Fatal("n did not cancel")
 	}
-	h.keys("n")
-	if c.sent {
-		t.Fatal("sent after n")
-	}
+	h.contains("Cancelled; nothing was sent.")
 	h.keys("ctrl+s", "y")
 	if !c.sent || c.err != nil {
-		t.Fatalf("not sent after y: %v", c.err)
+		t.Fatalf("y did not send: %v", c.err)
 	}
-	h.keys("esc")
 
-	h.selectMethod("RemoveItem")
-	h.keys("enter")
-	c = h.m.call
-	c.setParams(`{"id": 4}`)
-	h.keys("ctrl+s")
+	h.line("demo Reset")
+	c = h.call()
 	if c.confirm != confirmTyped {
 		t.Fatal("no typed confirmation for DANGER")
 	}
+	h.contains("DANGER", "Type Reset to confirm")
 	h.screenshot("danger")
-	h.keys("R", "e", "m", "enter")
+	h.typ("reset")
+	h.keys("enter")
 	if c.sent {
-		t.Fatal("sent with wrong confirmation")
+		t.Fatal("wrong name sent the call")
 	}
-	c.confirmInput.SetValue("RemoveItem")
+	h.contains("does not match")
+	h.keys("esc")
+	if c.confirm != confirmNone {
+		t.Fatal("esc did not cancel")
+	}
+	h.keys("ctrl+s")
+	h.typ("Reset")
 	h.keys("enter")
 	if !c.sent || c.err != nil {
-		t.Fatalf("not sent after typed confirmation: %v", c.err)
+		t.Fatalf("typed confirmation did not send: %v", c.err)
+	}
+
+	// Oneway sends without waiting for a reply.
+	h.line("demo GetGreeting name=Ada")
+	h.keys("esc", "ctrl+o", "ctrl+s", "y")
+	h.contains("✓ sent", "services send no reply")
+	h.keys("ctrl+o")
+	if c := h.call(); c.oneway {
+		t.Fatal("ctrl+o did not toggle back")
 	}
 }
 
-func TestOnewayIsWrite(t *testing.T) {
+func TestStreamStopAndRedaction(t *testing.T) {
 	h, _ := newHarness(t, false)
-	h.selectMethod("ListLanguages")
-	h.keys("enter", "ctrl+o", "ctrl+s")
-	if h.m.call.refused == "" {
-		t.Fatal("oneway READ call was not treated as a write")
+	h.line("demo WatchCountdown from=3 intervalMilliseconds=50")
+	c := h.call()
+	if !c.more || c.total != 4 || c.err != nil {
+		t.Fatalf("stream: more %v total %d err %v", c.more, c.total, c.err)
 	}
+	h.contains("✓ 4 replies", "continues")
+	h.screenshot("stream")
+	h.keys("esc", "ctrl+t")
+	h.contains("requires 'more'")
+
+	// esc stops a running stream; the history says so.
+	h.keys("esc")
+	h.m.cmd.input.SetValue("demo WatchCountdown from=100 intervalMilliseconds=50")
+	h.m.cmd.focus()
+	_, cmd := h.m.Update(keyFor("enter"))
+	if !c.running {
+		t.Fatal("stream did not start")
+	}
+	h.m.cmd.blur()
+	h.keys("esc")
+	h.run(cmd)
+	if c.running || !c.stopped || c.err != nil {
+		t.Fatalf("esc did not stop: running %v stopped %v err %v", c.running, c.stopped, c.err)
+	}
+	h.contains("■ stopped")
+	if e := h.m.history[len(h.m.history)-1]; !strings.HasPrefix(e.status, "stopped after") {
+		t.Fatalf("history status %q", e.status)
+	}
+
+	h.line("demo GetSupplier id=1")
+	if v := h.view(); strings.Contains(v, "demo-13556") || !strings.Contains(v, "«redacted»") {
+		t.Errorf("token not redacted:\n%s", v)
+	}
+	clip := captureClipboard(t)
+	h.keys("esc", "shift+tab")
+	if h.m.page().focus != focusResult {
+		t.Fatal("shift+tab did not focus the result")
+	}
+	h.contains("↑↓ scroll", "y copy reply")
+	h.keys("R")
+	h.contains("demo-13556", "unredacted")
+	h.keys("y", "home", "end", "pgup", "pgdown", "down")
+	if len(*clip) != 1 || !strings.Contains((*clip)[0], "demo-13556") {
+		t.Fatalf("clipboard %q", *clip)
+	}
+	h.keys("R", "esc")
+	if h.m.page().focus != focusForm {
+		t.Fatal("esc in the result did not return to the form")
+	}
+}
+
+func TestMethodPageKeys(t *testing.T) {
+	clip := captureClipboard(t)
+	h, _ := newHarness(t, false)
+	h.line("demo GetItem")
+	c := h.call()
+	h.typ("2")
+	h.keys("ctrl+y")
+	if len(*clip) != 1 || !strings.Contains((*clip)[0], "vlx call demo GetItem id=2") || !strings.Contains((*clip)[0], "varlinkctl call") {
+		t.Fatalf("clipboard %q", *clip)
+	}
+	h.keys("ctrl+t")
+	h.contains("does not support 'more'")
+
+	// JSON mode and back.
+	h.keys("ctrl+j")
+	if !c.jsonMode {
+		t.Fatal("ctrl+j did not switch to JSON")
+	}
+	h.contains("Parameters · JSON", "ctrl+j back to the form")
+	h.keys("end")
+	h.typ(" ")
+	if h.m.cmd.input.Value() != "demo GetItem id=2" {
+		t.Fatalf("JSON edit lost the line: %q", h.m.cmd.input.Value())
+	}
+	c.editor.SetValue(`{"id": "x"}`)
+	h.keys(" ")
+	h.contains("✗")
+	h.keys("ctrl+s")
+	h.contains("Fix the parameters first")
+	c.editor.SetValue(`{"nope": 1}`)
+	h.keys("ctrl+j")
+	h.contains("the form cannot show these parameters")
+	c.editor.SetValue(`{"id": 3}`)
+	h.keys("ctrl+j")
+	if c.jsonMode || c.form.fields[0].input.Value() != "3" {
+		t.Fatal("JSON did not go back to the form")
+	}
+	// The line drives JSON mode too.
+	h.keys("ctrl+j", "tab")
+	h.m.cmd.input.SetValue("")
+	h.typ("demo GetItem id=4")
+	if !strings.Contains(c.editor.Value(), "4") {
+		t.Fatalf("editor = %q", c.editor.Value())
+	}
+	h.typ(" x=1")
+	h.contains("unknown parameter \"x\"")
+	h.keys("shift+tab", "ctrl+j")
+
+	h.keys("ctrl+r")
+	if c.form.fields[0].input.Value() != "0" {
+		t.Fatalf("ctrl+r did not reset: %q", c.form.fields[0].input.Value())
+	}
+	h.keys("ctrl+d")
+	h.contains("method GetItem", "Returns", "Safety")
+	h.keys("ctrl+d")
+	h.contains("method GetItem(id: int) -> (item: Item)")
+	h.keys("esc")
+	h.call()
+	h.keys("ctrl+s", "pgup", "pgdown")
+	h.keys("f1")
+	h.contains("Help", "Command line", "Method page")
+	h.keys("f1")
+	h.call()
+
+	// A failed call shows the error, its documentation and the history.
+	h.line("demo GetItem id=99")
+	h.contains("✗ failed", "io.vlx.demo.Inventory.NoSuchItem", "No item has this id.")
+	if e := h.m.history[len(h.m.history)-1]; e.ok || e.status != "NoSuchItem" {
+		t.Fatalf("history %+v", e)
+	}
+	h.keys("esc", "esc", "esc")
+	h.contains("NoSuchItem")
+}
+
+func TestServicePageKeys(t *testing.T) {
+	clip := captureClipboard(t)
+	h, path := newHarness(t, false)
+	h.keys("ctrl+y")
+	h.keys("up", "ctrl+d")
+	h.contains("interface io.vlx.demo.Greeter", "IDL", "method GetGreeting(")
+	h.keys("ctrl+d")
+	h.contains("4 methods · 1 type · 1 error", "Press ctrl+d for the IDL source.")
+	h.keys("home", "end", "pgdown", "esc")
+	h.keys("right")
+	h.contains("method GetGreeting(")
+	h.keys("?") // ? leaves a detail page too
+	if h.m.page().kind != pageService {
+		t.Fatal("? did not leave the detail page")
+	}
+	for range 5 {
+		h.keys("down")
+	}
+	h.keys("ctrl+y", "enter")
+	h.contains("type Language", "english")
+	h.keys("esc", "down", "ctrl+d")
+	h.contains("error EmptyName", "Parameters")
+	h.keys("esc", "end", "ctrl+y")
+	want := []string{"vlx call demo GetGreeting", "io.vlx.demo.Greeter.Language", "org.varlink.service"}
+	if len(*clip) != len(want) {
+		t.Fatalf("clipboard %q", *clip)
+	}
+	for i, w := range want {
+		if !strings.Contains((*clip)[i], w) {
+			t.Errorf("copy %d = %q, want %q", i, (*clip)[i], w)
+		}
+	}
+	h.keys("ctrl+r")
+	h.contains("GetGreeting")
+	h.keys("esc", "ctrl+y")
+	if (*clip)[len(*clip)-1] != path {
+		t.Fatalf("home copy = %q", (*clip)[len(*clip)-1])
+	}
+	h.line("demo GetGreeting name=Ada")
+	h.keys("esc", "esc", "esc", "home", "ctrl+y")
+	if c := (*clip)[len(*clip)-1]; c != "vlx call demo GetGreeting name=Ada" {
+		t.Fatalf("recent copy = %q", c)
+	}
+	// Typing on a detail page goes to the command line.
+	h.keys("down")
+	h.keys("enter", "up", "ctrl+d")
+	h.typ("x")
+	if !h.m.cmd.focused || h.m.cmd.input.Value() != "x" {
+		t.Fatal("typing on a detail page did not start the command line")
+	}
+}
+
+func TestHelpAndQuit(t *testing.T) {
+	h, _ := newHarness(t, false)
+	h.keys("?")
+	h.contains("Help", "SERVICE [METHOD] [NAME=VALUE …]", "READ", "DANGER", "read-only")
+	h.screenshot("help")
+	h.keys("down", "home", "end", "?")
+	if h.m.page().kind != pageService {
+		t.Fatal("? did not close help")
+	}
+	h.keys("f1")
+	if _, ok := h.m.updateReader(h.m.page(), keyFor("q"))().(tea.QuitMsg); !ok {
+		t.Fatal("q on help did not quit")
+	}
+	h.keys("esc")
+	if _, ok := h.m.handleKey(keyFor("q"))().(tea.QuitMsg); !ok {
+		t.Fatal("q did not quit")
+	}
+	_, cmd := h.m.Update(keyFor("ctrl+c"))
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Fatal("ctrl+c did not quit")
+	}
+	// A mouse or other message reaches the focused input harmlessly.
+	h.send(struct{}{})
+	h.keys("ctrl+k")
+	h.send(struct{}{})
+}
+
+func TestWelcomeAndErrors(t *testing.T) {
+	cfg := testConfig(t)
+	h := start(t, Options{Config: cfg, Discovery: discovery0()}, 120, 36)
+	h.contains("No Varlink sockets were found", "vlx demo")
+	h.keys("down", "enter", "ctrl+y", "ctrl+d")
+	h.m.discovered = false
+	h.contains("Looking for Varlink sockets")
+
+	// A target that cannot be opened shows why on its page.
+	h = start(t, Options{Config: cfg, Discovery: discovery0(), Target: "/nonexistent.sock"}, 120, 36)
+	h.contains("✗", "ctrl+r tries again")
+	h.keys("ctrl+r")
+	h.contains("✗")
+	h.keys("esc")
+	h.contains("/nonexistent.sock", "could not connect")
+
+	// Sockets the user may not open.
+	h.m.sockets[0].Accessible = false
+	h.m.root = false
+	h.contains("needs root")
+	h.m.root = true
+	h.contains("no access")
+	h.keys("enter")
+	h.contains("You do not have permission")
+	h.m.stack = append(h.m.stack, newPage(pageService, "/nonexistent.sock"))
+	delete(h.m.state, "/nonexistent.sock")
+	h.contains("Try sudo")
 }
 
 func TestSmallTerminal(t *testing.T) {
 	h, _ := newHarness(t, false)
-	h.send(tea.WindowSizeMsg{Width: 50, Height: 10})
-	if !strings.Contains(h.view(), "at least 60×16") {
-		t.Errorf("got %s", h.view())
-	}
-	for _, size := range [][2]int{{80, 24}, {140, 40}, {99, 30}, {200, 60}} {
+	h.send(tea.WindowSizeMsg{Width: 40, Height: 10})
+	h.contains("vlx needs at least 60×16")
+	for _, size := range [][2]int{{60, 16}, {80, 24}, {200, 60}} {
 		h.send(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		checkFits(t, h.view(), size[0], size[1])
-		h.selectMethod("GetItem")
-		h.keys("enter")
-		checkFits(t, h.view(), size[0], size[1])
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.line("demo WatchCountdown from=2 intervalMilliseconds=50")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.line("demo GetItem id=1")
+		h.line("demo GetItem id=2")
+		h.line("demo GetItem id=3")
+		h.line("demo GetItem id=4")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("esc", "ctrl+j")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("ctrl+j", "ctrl+d")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("esc", "esc")
+		checkFits(t, h.m.View(), size[0], size[1])
 		h.keys("esc")
-	}
-}
-
-func checkFits(t *testing.T, v string, width, height int) {
-	t.Helper()
-	for i, line := range strings.Split(v, "\n") {
-		if w := ansi.StringWidth(line); w > width {
-			t.Errorf("line %d is %d wide: %q", i, w, line)
-		}
-	}
-	if n := len(strings.Split(v, "\n")); n > height {
-		t.Errorf("view is %d lines tall", n)
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("f1")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("esc")
+		h.typ("get")
+		checkFits(t, h.m.View(), size[0], size[1])
+		h.keys("esc")
 	}
 }
 
 func TestEscapeSequencesAreStripped(t *testing.T) {
 	h, _ := newHarness(t, false)
-	h.selectMethod("GetGreeting")
-	h.keys("enter")
-	c := h.m.call
+	h.line("demo GetGreeting")
+	c := h.call()
 	c.setParams("{\"name\": \"\\u001b]0;pwned\\u0007\"}")
 	h.keys("ctrl+s")
-	raw := h.m.View()
-	if strings.Contains(raw, "\x1b]0;") || strings.Contains(raw, "\a") {
-		t.Fatal("OSC sequence from service data reached the terminal")
+	if c.total != 1 {
+		t.Fatalf("not sent: %v", c.err)
 	}
-}
-
-func TestFormCall(t *testing.T) {
-	h, _ := newHarness(t, false)
-	h.selectMethod("GetGreeting")
-	h.keys("enter")
-	c := h.m.call
-	if c.jsonMode {
-		t.Fatal("call screen opened in JSON mode")
-	}
-	h.keys("A", "d", "a", "down", "right", "right") // name, then language: (unset) → english → spanish
-	v := h.view()
-	for _, want := range []string{"name", "language", "spanish", "The language to greet in."} {
-		if !strings.Contains(v, want) {
-			t.Errorf("form view lacks %q:\n%s", want, v)
+	for _, raw := range []string{h.m.View(), h.m.cmd.input.Value()} {
+		if strings.Contains(raw, "\x1b]0;") || strings.Contains(raw, "\a") {
+			t.Fatal("OSC sequence from service data reached the terminal")
 		}
-	}
-	h.screenshot("form")
-	h.keys("ctrl+s")
-	if c.err != nil || c.total != 1 || !strings.Contains(h.view(), "¡Hola, Ada!") {
-		t.Fatalf("form call: total %d err %v\n%s", c.total, c.err, h.view())
-	}
-	h.screenshot("call")
-
-	// Round trip through JSON mode.
-	h.keys("ctrl+j")
-	if !c.jsonMode || !strings.Contains(c.editor.Value(), `"language": "spanish"`) {
-		t.Fatalf("JSON mode: %v %q", c.jsonMode, c.editor.Value())
-	}
-	c.editor.SetValue(`{"name": "Bo", "language": "german"}`)
-	h.keys("ctrl+j")
-	if c.jsonMode || c.form.fields[0].input.Value() != "Bo" {
-		t.Fatalf("back to form: %v %q", c.jsonMode, c.form.fields[0].input.Value())
-	}
-	// JSON the form cannot show keeps you in JSON mode.
-	h.keys("ctrl+j")
-	c.editor.SetValue(`{"name": "Bo", "extra": 1}`)
-	h.keys("ctrl+j")
-	if !c.jsonMode {
-		t.Fatal("left JSON mode with parameters the form cannot show")
-	}
-}
-
-func TestNoParameterMethod(t *testing.T) {
-	h, _ := newHarness(t, false)
-	h.selectMethod("ListLanguages")
-	h.keys("enter")
-	if !strings.Contains(h.view(), "This method takes no parameters.") {
-		t.Fatalf("view:\n%s", h.view())
-	}
-	h.keys("ctrl+s")
-	if h.m.call.total != 1 {
-		t.Fatal("no-parameter call not sent")
-	}
-}
-
-// newBrowseHarness starts two demo services in one directory and opens the
-// explorer without a target, as plain `vlx` would.
-func newBrowseHarness(t *testing.T, preview bool) *harness {
-	t.Helper()
-	dir, err := os.MkdirTemp("", "vlx")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.RemoveAll(dir) })
-	for _, name := range []string{"com.example.Alpha", "com.example.Beta"} {
-		srv, err := demo.Listen(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { srv.Close() })
-	}
-	v := viper.New()
-	config.SetDefaults(v)
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	cfg, err := config.Load(v, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.Preview = preview
-	m := New(Options{Config: cfg, Discovery: discovery.Options{Dirs: []string{dir}}})
-	screenshotMode(m)
-	h := &harness{t: t, m: m}
-	h.send(tea.WindowSizeMsg{Width: 140, Height: 40})
-	h.run(m.Init())
-	return h
-}
-
-func TestPreviewFollowsCursor(t *testing.T) {
-	previewDelay = time.Millisecond
-	h := newBrowseHarness(t, true)
-	if h.m.focus != paneServices {
-		t.Fatal("preview stole focus from the services pane")
-	}
-	if h.m.svc == nil || !strings.HasSuffix(h.m.svc.Path, "com.example.Alpha") {
-		t.Fatalf("first service not previewed: %+v", h.m.svc)
-	}
-	if !strings.Contains(h.view(), "GetGreeting") {
-		t.Errorf("tree not shown while browsing services:\n%s", h.view())
-	}
-	h.keys("down")
-	if h.m.svc == nil || !strings.HasSuffix(h.m.svc.Path, "com.example.Beta") {
-		t.Fatalf("second service not previewed")
-	}
-	alpha := h.m.cache[h.m.sockets[0].Path]
-	h.keys("up")
-	if h.m.svc != alpha {
-		t.Error("returning to a service did not use the cache")
-	}
-	// Boilerplate interfaces start collapsed.
-	for _, r := range h.m.rows {
-		if r.kind != rowIface && r.iface.Name == "org.varlink.service" {
-			t.Error("org.varlink.service is expanded")
-		}
-	}
-	// Enter moves into the tree without another round trip.
-	h.keys("enter")
-	if h.m.focus != paneMembers {
-		t.Error("enter did not move into the tree")
-	}
-}
-
-func TestNoPreview(t *testing.T) {
-	previewDelay = time.Millisecond
-	h := newBrowseHarness(t, false)
-	if h.m.svc != nil || len(h.m.cache) != 0 {
-		t.Fatal("introspected with preview off")
-	}
-	h.keys("down")
-	if h.m.svc != nil {
-		t.Fatal("introspected on cursor move with preview off")
-	}
-	h.keys("enter")
-	if h.m.svc == nil || h.m.focus != paneMembers {
-		t.Fatal("enter did not open the service")
 	}
 }

@@ -1,8 +1,11 @@
 // Package tui is vlx's interactive explorer, built with Bubble Tea.
 //
-// The browse screen has three panes — services, interfaces and detail —
-// and the call screen pairs a schema-aware parameter editor with a live
-// response view. All socket I/O runs in tea.Cmds so the UI never blocks.
+// It shows one page at a time — the services, one service, one method —
+// with a command line along the bottom that is always there: type a few
+// letters to jump anywhere, or a whole call such as
+// `greeter Hello name=Ada` to run it. On a method page the parameter form
+// and the command line show the same call, and editing either updates the
+// other. All socket I/O runs in tea.Cmds so the UI never blocks.
 package tui
 
 import (
@@ -11,11 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -39,22 +39,6 @@ type Options struct {
 	Note string
 }
 
-type pane int
-
-const (
-	paneServices pane = iota
-	paneMembers
-	paneDetail
-)
-
-type screen int
-
-const (
-	screenBrowse screen = iota
-	screenCall
-	screenHelp
-)
-
 type sockState struct {
 	loading bool
 	ok      bool
@@ -70,46 +54,42 @@ type Model struct {
 	redactor   *render.Redactor
 	copts      client.Options
 	root       bool
+	host       string
 
 	width, height int
-	screen        screen
-	helpReturn    screen
-	focus         pane
 
 	sockets    []discovery.Socket
 	discovered bool
 	state      map[string]*sockState
-	svcCursor  int
-	svcOffset  int
-	svcFilter  textinput.Model
-
-	svc        *client.Service
-	svcPath    string
 	cache      map[string]*client.Service
 	previewSeq int
-	openOnLoad string // move into the tree when this path finishes loading
-	expanded   map[string]bool
-	rows       []row
-	memCursor  int
-	memOffset  int
-	memFilter  textinput.Model
 
-	filtering bool // the focused pane's filter input has the keyboard
+	stack []*page
 
-	detail  viewport.Model
-	showIDL bool
+	cmd command
 
-	palette *palette
-
-	call   *callState
-	drafts map[string]string
-	callID int
+	calls   map[string]*callState // by socket path and qualified method
+	history []historyEntry
+	callID  int
 
 	spinner spinner.Model
-	help    help.Model
 	flash   string
 	flashOK bool
 	flashID int
+}
+
+// historyEntry is one call sent in this session.
+type historyEntry struct {
+	id        int
+	path      string
+	qualified string
+	method    string
+	line      string // the command line that repeats it
+	args      string // its arguments, for display
+	status    string
+	ok        bool
+	done      bool
+	at        time.Time
 }
 
 // New returns the explorer model.
@@ -125,36 +105,18 @@ func New(opts Options) *Model {
 		root:       os.Geteuid() == 0,
 		state:      map[string]*sockState{},
 		cache:      map[string]*client.Service{},
-		expanded:   map[string]bool{},
-		drafts:     map[string]string{},
-		detail:     viewport.New(40, 10),
-		help:       help.New(),
+		calls:      map[string]*callState{},
 		width:      100,
 		height:     30,
 	}
-	m.svcFilter = newFilterInput()
-	m.memFilter = newFilterInput()
+	m.host, _ = os.Hostname()
 	m.spinner = spinner.New(spinner.WithSpinner(spinner.MiniDot), spinner.WithStyle(lipgloss.NewStyle().Foreground(render.Brand)))
-	m.help.Styles.ShortKey = lipgloss.NewStyle().Foreground(render.Brand).Bold(true)
-	m.help.Styles.ShortDesc = mutedStyle
-	m.help.Styles.ShortSeparator = faintStyle
-	m.help.Styles.FullKey = m.help.Styles.ShortKey
-	m.help.Styles.FullDesc = mutedStyle
+	m.cmd = newCommand()
+	m.stack = []*page{newPage(pageHome, "")}
 	if opts.Target != "" {
-		m.svcPath = opts.Target
-		m.openOnLoad = opts.Target
+		m.push(newPage(pageService, opts.Target))
 	}
 	return m
-}
-
-func newFilterInput() textinput.Model {
-	ti := textinput.New()
-	ti.Prompt = "/ "
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(render.Brand)
-	ti.Placeholder = "filter"
-	ti.CharLimit = 64
-	staticCursorInTests(&ti.Cursor)
-	return ti
 }
 
 // Init starts discovery, and introspection of the target if there is one.
@@ -163,10 +125,10 @@ func (m *Model) Init() tea.Cmd {
 		tea.SetWindowTitle("vlx — Varlink explorer"),
 		discoverCmd(m.opts.Discovery),
 		m.spinner.Tick,
+		textinput.Blink,
 	}
 	if m.opts.Target != "" {
-		m.state[m.opts.Target] = &sockState{loading: true}
-		cmds = append(cmds, introspectCmd(m.opts.Target, m.copts))
+		cmds = append(cmds, m.introspect(m.opts.Target))
 	}
 	return tea.Batch(cmds...)
 }
@@ -182,8 +144,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
-		if m.busy() && m.call != nil && m.screen == screenCall {
-			m.refreshResponse(false)
+		if c := m.currentCall(); c != nil && c.running {
+			m.refreshResponse(c, false)
 		}
 		return m, cmd
 
@@ -194,21 +156,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.handlePreview(msg)
 
 	case introspectedMsg:
-		cmd := m.handleIntrospected(msg)
-		m.refreshPalette()
-		return m, cmd
+		return m, m.handleIntrospected(msg)
 
 	case replyMsg:
-		if m.call != nil && msg.id == m.call.id {
-			m.call.addReply(msg.reply, m.cfg.MaxReplies, m.renderReply)
-			m.refreshResponse(true)
+		if c := m.callByID(msg.id); c != nil {
+			c.addReply(msg.reply, m.cfg.MaxReplies, m.renderReply)
+			m.refreshResponse(c, true)
 		}
 		return m, waitFor(msg.ch)
 
 	case callDoneMsg:
-		if m.call != nil && msg.id == m.call.id {
-			m.call.finish(msg.err)
-			m.refreshResponse(true)
+		if c := m.callByID(msg.id); c != nil {
+			c.finish(msg.err)
+			m.recordDone(c)
+			m.refreshResponse(c, true)
 		}
 		return m, nil
 
@@ -223,83 +184,94 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
-			m.stopCall()
+			m.stopAll()
 			return m, tea.Quit
 		}
-		switch m.screen {
-		case screenHelp:
-			return m, m.updateHelp(msg)
-		case screenCall:
-			return m, m.updateCall(msg)
-		default:
-			return m, m.updateBrowse(msg)
-		}
+		return m, m.handleKey(msg)
 	}
-	if m.palette != nil {
+	// Cursor blinks and the like go to whatever has the keyboard.
+	if m.cmd.focused {
 		var cmd tea.Cmd
-		m.palette.input, cmd = m.palette.input.Update(msg)
+		m.cmd.input, cmd = m.cmd.input.Update(msg)
 		return m, cmd
 	}
-	if m.screen == screenCall && m.call != nil {
-		return m, m.call.forward(msg)
+	if c := m.currentCall(); c != nil {
+		return m, c.forward(msg)
 	}
 	return m, nil
 }
 
-func (m *Model) busy() bool {
-	if m.call != nil && m.call.running {
-		return true
+// handleKey routes a key: a confirmation dialog first, then the command
+// line if it has the keyboard, then the page.
+func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
+	if c := m.currentCall(); c != nil && c.confirm != confirmNone {
+		return m.updateConfirm(c, msg)
 	}
-	for _, st := range m.state {
-		if st.loading {
-			return true
-		}
+	if msg.String() == "f1" {
+		return m.openHelp()
 	}
-	return false
+	if m.cmd.focused {
+		return m.updateCommand(msg)
+	}
+	p := m.page()
+	switch p.kind {
+	case pageMethod:
+		return m.updateMethod(p, msg)
+	case pageDetail, pageHelp:
+		return m.updateReader(p, msg)
+	default:
+		return m.updateList(p, msg)
+	}
 }
 
 func (m *Model) setFlash(text string, ok bool) tea.Cmd {
 	m.flashID++
 	m.flash = sanitize.Line(text)
 	m.flashOK = ok
-	return clearFlashAfter(m.flashID, 4*time.Second)
+	return clearFlashAfter(m.flashID, flashFor)
 }
 
-func (m *Model) stopCall() {
-	if m.call != nil && m.call.cancel != nil {
-		m.call.cancel()
+// flashFor is how long a status message stays.
+var flashFor = 4 * time.Second
+
+func (m *Model) stopAll() {
+	for _, c := range m.calls {
+		if c.cancel != nil {
+			c.cancel()
+		}
 	}
 }
 
 func (m *Model) setSockets(sockets []discovery.Socket) tea.Cmd {
-	var selected string
-	if s, ok := m.selectedSocket(); ok {
-		selected = s.Path
-	}
-	if m.svcPath != "" {
-		if _, found := socketFor(m.svcPath, sockets); !found {
-			s, _ := socketFor(m.svcPath, nil)
+	if t := m.opts.Target; t != "" {
+		if _, found := socketFor(t, sockets); !found {
+			s, _ := socketFor(t, nil)
 			sockets = append([]discovery.Socket{s}, sockets...)
-		}
-		if selected == "" {
-			selected = m.svcPath
 		}
 	}
 	m.sockets = sockets
 	m.discovered = true
-	m.svcCursor = 0
-	for i, idx := range m.visibleSockets() {
-		if m.sockets[idx].Path == selected {
-			m.svcCursor = i
-		}
-	}
-	m.refreshDetail()
-	if m.svcPath == "" {
-		if s, ok := m.selectedSocket(); ok {
-			return m.showService(s.Path)
-		}
+	if m.page().kind == pageHome {
+		return m.previewSelected()
 	}
 	return nil
+}
+
+// introspect starts a read-only introspection of path.
+func (m *Model) introspect(path string) tea.Cmd {
+	if st := m.state[path]; st != nil && st.loading {
+		return nil
+	}
+	m.state[path] = &sockState{loading: true}
+	return tea.Batch(introspectCmd(path, m.copts), m.spinner.Tick)
+}
+
+// ensure introspects path unless it is cached or being read.
+func (m *Model) ensure(path string) tea.Cmd {
+	if m.cache[path] != nil {
+		return nil
+	}
+	return m.introspect(path)
 }
 
 func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
@@ -314,101 +286,118 @@ func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
 	if msg.err == nil {
 		m.cache[msg.path] = msg.svc
 	}
-	opening := m.openOnLoad == msg.path
-	if opening {
-		m.openOnLoad = ""
-	}
-	if msg.path != m.svcPath {
-		return nil
-	}
-	if msg.err != nil {
-		m.svc = nil
-		m.rows = nil
-		m.focus = paneServices
-		m.layout()
-		if opening {
-			return m.setFlash("Could not open "+msg.path+": "+msg.err.Error(), false)
+	var cmds []tea.Cmd
+	if m.cmd.pendingPath == msg.path {
+		line := m.cmd.pendingLine
+		m.cmd.pendingPath, m.cmd.pendingLine = "", ""
+		if msg.err != nil {
+			cmds = append(cmds, m.setFlash("Could not open "+msg.path+": "+msg.err.Error(), false))
+		} else {
+			cmds = append(cmds, m.runLine(line, false))
 		}
-		return nil
 	}
-	m.setService(msg.svc)
-	if opening {
-		m.focus = paneMembers
-		m.layout()
-	}
-	return nil
+	m.refreshSuggestions()
+	return tea.Batch(cmds...)
 }
 
 // layout sizes the sub-models after a resize.
 func (m *Model) layout() {
-	_, _, dw := m.paneWidths()
-	m.detail.Width = max(dw-4, 10)
-	m.detail.Height = max(m.bodyHeight()-3, 3)
-	m.help.Width = m.width - 1
-	if m.call != nil {
-		m.layoutCall()
+	m.cmd.input.Width = max(m.width-8, 10)
+	for _, p := range m.stack {
+		m.layoutPage(p)
 	}
-	m.refreshDetail()
 }
 
-func (m *Model) bodyHeight() int {
-	return max(m.height-3, 5) // header + status + help
-}
+const (
+	gutter      = 2 // columns of space left and right of the body
+	chromeLines = 6 // header, a blank line, status, rule, command line, key hints
+)
 
-// paneWidths returns the outer widths of the three panes; 0 hides a pane.
-func (m *Model) paneWidths() (services, members, detail int) {
-	w := m.width
-	if w < 100 {
-		if m.focus == paneServices {
-			services = w * 2 / 5
-			return services, w - services, 0
-		}
-		members = w * 2 / 5
-		return 0, members, w - members
-	}
-	services = clamp(w/5, 24, 34)
-	members = clamp(w*3/10, 32, 48)
-	return services, members, w - services - members
-}
+func (m *Model) bodyHeight() int { return max(m.height-chromeLines, 5) }
+func (m *Model) bodyWidth() int  { return max(m.width-2*gutter, 20) }
 
 func clamp(v, lo, hi int) int {
 	return max(lo, min(v, hi))
 }
 
-// View renders the current screen.
+// View renders the current page with the command line beneath it.
 func (m *Model) View() string {
 	if m.width < 60 || m.height < 16 {
 		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
 			warnStyle.Render(fmt.Sprintf("vlx needs at least 60×16 (now %d×%d)", m.width, m.height)))
 	}
+	p := m.page()
+	bh, bw := m.bodyHeight(), m.bodyWidth()
 	var body string
-	switch m.screen {
-	case screenHelp:
-		body = m.viewHelp()
-	case screenCall:
-		body = m.viewCall()
+	switch p.kind {
+	case pageHome:
+		body = m.viewHome(p, bw, bh)
+	case pageService:
+		body = m.viewService(p, bw, bh)
+	case pageMethod:
+		body = m.viewMethod(p, bw, bh)
 	default:
-		body = m.viewBrowse()
+		body = m.viewReader(p, bw, bh)
 	}
-	if m.palette != nil && m.screen == screenBrowse {
-		body = lipgloss.Place(m.width, m.bodyHeight(), lipgloss.Center, lipgloss.Center, m.viewPalette())
+	lines := fitLines(strings.Split(body, "\n"), bh, bw)
+	if c := m.currentCall(); c != nil && c.confirm != confirmNone {
+		lines = strings.Split(lipgloss.Place(bw, bh, lipgloss.Center, lipgloss.Center, m.viewConfirm(c)), "\n")
+	} else if pop := m.viewSuggestions(bw); pop != "" {
+		lines = overlayBottom(lines, strings.Split(pop, "\n"))
 	}
-	if m.call != nil && m.call.confirm != confirmNone && m.screen == screenCall {
-		body = lipgloss.Place(m.width, m.bodyHeight(), lipgloss.Center, lipgloss.Center, m.viewConfirm())
+	pad := strings.Repeat(" ", gutter)
+	for i, l := range lines {
+		lines[i] = pad + l
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, m.viewHeader(), body, m.viewStatus(), m.viewFooter())
+	return strings.Join([]string{
+		m.viewHeader(),
+		"",
+		strings.Join(lines, "\n"),
+		m.viewStatus(),
+		faintStyle.Render(strings.Repeat("─", m.width)),
+		m.viewCommand(),
+		m.viewHints(),
+	}, "\n")
+}
+
+// fitLines pads or cuts lines to exactly h lines no wider than w.
+func fitLines(lines []string, h, w int) []string {
+	out := make([]string, 0, h)
+	for _, l := range lines {
+		if len(out) == h {
+			break
+		}
+		out = append(out, ansi.Truncate(l, w, "…"))
+	}
+	for len(out) < h {
+		out = append(out, "")
+	}
+	return out
+}
+
+// overlayBottom replaces the last lines of body with pop.
+func overlayBottom(body, pop []string) []string {
+	if len(pop) > len(body) {
+		pop = pop[len(pop)-len(body):]
+	}
+	copy(body[len(body)-len(pop):], pop)
+	return body
 }
 
 func (m *Model) viewHeader() string {
-	left := logoStyle.Render("vlx")
-	title := "Varlink explorer"
-	if m.svcPath != "" {
-		title = m.svcPath
+	parts := []string{logoStyle.Render("vlx")}
+	crumbs := m.breadcrumb()
+	for i, c := range crumbs {
+		st := mutedStyle
+		if i == len(crumbs)-1 {
+			st = boldStyle
+		}
+		parts = append(parts, faintStyle.Render("›"), st.Render(sanitize.Line(c)))
 	}
+	left := " " + strings.Join(parts, " ")
 	if m.opts.Note != "" {
-		title += mutedStyle.Render("  " + m.opts.Note)
+		left += mutedStyle.Render("  " + m.opts.Note)
 	}
-	left += " " + headerPathStyle.Render(title)
 
 	var badges []string
 	if m.policy.AllowWrites {
@@ -419,7 +408,7 @@ func (m *Model) viewHeader() string {
 	if m.root {
 		badges = append(badges, badge("ROOT", render.Red))
 	}
-	right := strings.Join(badges, " ")
+	right := strings.Join(badges, " ") + " "
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if gap < 1 {
 		left = ansi.Truncate(left, max(m.width-lipgloss.Width(right)-2, 0), "…")
@@ -431,33 +420,23 @@ func (m *Model) viewHeader() string {
 func (m *Model) viewStatus() string {
 	var s string
 	switch {
+	case m.cmd.err != "" && m.cmd.focused:
+		s = errStyle.Render("✗ " + m.cmd.err)
 	case m.flash != "":
 		st := flashStyle
 		if !m.flashOK {
 			st = errStyle
 		}
 		s = st.Render(m.flash)
+	case m.cmd.pendingPath != "":
+		s = m.spinner.View() + mutedStyle.Render(" Connecting to "+m.cmd.pendingPath+" …")
 	default:
 		for path, st := range m.state {
-			if st.loading {
+			if st.loading && m.page().path == path {
 				s = m.spinner.View() + mutedStyle.Render(" Connecting to "+path+" …")
 				break
 			}
 		}
 	}
-	return ansi.Truncate(" "+s, m.width, "…")
-}
-
-func (m *Model) viewFooter() string {
-	var keys []key.Binding
-	switch m.screen {
-	case screenHelp:
-		keys = []key.Binding{bk.Back, bk.Quit}
-	case screenCall:
-		keys = m.callHelpKeys()
-	default:
-		keys = m.browseHelpKeys()
-	}
-	// help truncates with an ellipsis, but not in every case; clamp anyway.
-	return ansi.Truncate(" "+m.help.ShortHelpView(keys), m.width, "…")
+	return ansi.Truncate(strings.Repeat(" ", gutter)+s, m.width, "…")
 }

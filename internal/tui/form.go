@@ -15,6 +15,7 @@ import (
 
 	"github.com/rossedman/sdvarlink/idl"
 
+	"github.com/rossedman/vlx/internal/cmdline"
 	"github.com/rossedman/vlx/internal/render"
 	"github.com/rossedman/vlx/internal/sanitize"
 	"github.com/rossedman/vlx/internal/schema"
@@ -46,6 +47,7 @@ type formField struct {
 	input   textinput.Model // text, numbers and JSON
 	choices []string        // bool and enum; "(unset)" first when optional
 	choice  int
+	initial string // the input's starting value, restored when cleared
 
 	err string // set by validate
 }
@@ -53,6 +55,7 @@ type formField struct {
 // paramForm edits a method's parameters one field at a time.
 type paramForm struct {
 	iface  *idl.Interface
+	in     *idl.Type
 	fields []*formField
 	cursor int
 	offset int
@@ -61,7 +64,7 @@ type paramForm struct {
 }
 
 func newParamForm(iface *idl.Interface, in *idl.Type) *paramForm {
-	f := &paramForm{iface: iface}
+	f := &paramForm{iface: iface, in: in}
 	if in == nil {
 		return f
 	}
@@ -141,7 +144,118 @@ func newFormField(iface *idl.Interface, fd *idl.Field) *formField {
 		ti.Placeholder += " (empty to omit)"
 	}
 	ff.input = ti
+	ff.initial = ti.Value()
 	return ff
+}
+
+// args returns the values the form would send as command-line arguments,
+// in field order, with the text as typed.
+func (f *paramForm) args() []cmdline.Arg {
+	var out []cmdline.Arg
+	for _, ff := range f.fields {
+		if ff.isChoice() {
+			if v := ff.choices[ff.choice]; v != unsetLabel {
+				out = append(out, cmdline.Arg{Name: ff.name, Value: v})
+			}
+			continue
+		}
+		v := ff.input.Value()
+		if ff.kind != kindText {
+			v = strings.TrimSpace(v)
+		}
+		if v == "" && (ff.optional || ff.kind != kindText) {
+			continue
+		}
+		out = append(out, cmdline.Arg{Name: ff.name, Value: v})
+	}
+	return out
+}
+
+// loadArgs sets the form from command-line arguments. Fields the
+// arguments do not name go back to their starting values. It fails,
+// changing nothing, on an unknown name, a repeated name or an impossible
+// choice.
+func (f *paramForm) loadArgs(args []cmdline.Arg) error {
+	given := map[string]string{}
+	for _, a := range args {
+		if _, dup := given[a.Name]; dup {
+			return cmdline.Twice(a.Name)
+		}
+		given[a.Name] = a.Value
+	}
+	known := map[string]bool{}
+	for _, ff := range f.fields {
+		known[ff.name] = true
+	}
+	for _, a := range args {
+		if !known[a.Name] {
+			return cmdline.Unknown(a.Name, f.in)
+		}
+	}
+	type setter func()
+	var sets []setter
+	for _, ff := range f.fields {
+		v, ok := given[ff.name]
+		switch {
+		case ff.isChoice() && !ok:
+			sets = append(sets, func() { ff.choice = 0 })
+		case ff.isChoice():
+			idx, prefixed, n := -1, -1, 0
+			for i, c := range ff.choices {
+				switch {
+				case c == unsetLabel:
+				case strings.EqualFold(c, v):
+					idx = i
+				case v != "" && strings.HasPrefix(strings.ToLower(c), strings.ToLower(v)):
+					prefixed = i
+					n++
+				}
+			}
+			if idx < 0 && n == 1 {
+				idx = prefixed // a unique start is enough while typing
+			}
+			if idx < 0 {
+				return fmt.Errorf("%s=%s: choose one of %s", ff.name, v, strings.Join(ff.choiceValues(), ", "))
+			}
+			sets = append(sets, func() { ff.choice = idx })
+		case !ok:
+			sets = append(sets, func() { ff.input.SetValue(ff.initial) })
+		default:
+			sets = append(sets, func() { ff.input.SetValue(v) })
+		}
+	}
+	for _, set := range sets {
+		set()
+	}
+	return nil
+}
+
+// required reports whether any parameter must be given.
+func (f *paramForm) required() bool {
+	for _, ff := range f.fields {
+		if !ff.optional {
+			return true
+		}
+	}
+	return false
+}
+
+func (ff *formField) choiceValues() []string {
+	if ff.optional {
+		return ff.choices[1:]
+	}
+	return ff.choices
+}
+
+// lines reports how many lines view needs to show every field.
+func (f *paramForm) lines(width int, focused bool) int {
+	if len(f.fields) == 0 {
+		return 3
+	}
+	saved := f.offset
+	n := strings.Count(f.view(width, 1<<20, focused), "\n") + 1
+	f.offset = saved
+	return n
 }
 
 func jsonPlaceholder(t *idl.Type) string {
@@ -522,6 +636,9 @@ func (f *paramForm) view(width, height int, focused bool) string {
 	if end > f.offset+height {
 		f.offset = end - height
 	}
+	if start < f.offset {
+		f.offset = start // a field's own line beats its notes
+	}
 	f.offset = clamp(f.offset, 0, max(len(lines)-height, 0))
 	lines = lines[f.offset:min(f.offset+height, len(lines))]
 	return strings.Join(lines, "\n")
@@ -555,11 +672,7 @@ func (ff *formField) hint() string {
 	case kindBool:
 		return "←/→ or space to switch"
 	case kindEnum:
-		vals := ff.choices
-		if ff.optional {
-			vals = vals[1:]
-		}
-		return "←/→ to choose: " + strings.Join(vals, " · ")
+		return "←/→ to choose: " + strings.Join(ff.choiceValues(), " · ")
 	case kindJSON:
 		return "JSON value · ctrl+j edits all parameters as JSON"
 	case kindInt, kindFloat:

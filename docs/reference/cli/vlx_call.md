@@ -8,9 +8,10 @@ Call a method and print the reply
 
 ### Synopsis
 
-Call METHOD on SERVICE with PARAMS, a JSON object ('-' reads stdin, -f reads a
-file, and no PARAMS means {}). Parameters are checked against the method's IDL
-before anything is sent.
+Call METHOD on SERVICE. Give parameters as NAME=VALUE pairs (the explorer's
+command-line syntax: strings are taken literally, other values are JSON) or as
+one JSON object ('-' reads stdin, -f reads a file, and nothing means {}).
+Parameters are checked against the method's IDL before anything is sent.
 
 Safety: methods are classified READ, WRITE or DANGER. vlx only sends READ
 methods unless you pass --allow-writes. WRITE calls then ask for confirmation
@@ -22,13 +23,14 @@ reply as it arrives. Exit status is 3 when the service returns an error,
 4 when vlx refuses a call, 5 when the service cannot be found.
 
 ```
-vlx call SERVICE METHOD [PARAMS] [flags]
+vlx call SERVICE METHOD [PARAMS | NAME=VALUE...] [flags]
 ```
 
 ### Examples
 
 ```
   vlx call hostname io.systemd.Hostname.Describe
+  vlx call resolve ResolveHostname name=example.com family=2
   vlx call resolve ResolveHostname '{"name":"example.com"}'
   echo '{"name":"example.com"}' | vlx call resolve ResolveHostname -
   vlx call multiplexer GetUserRecord '{"service":"io.systemd.Multiplexer"}' --more

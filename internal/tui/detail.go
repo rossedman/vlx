@@ -12,175 +12,12 @@ import (
 	"github.com/rossedman/vlx/internal/client"
 	"github.com/rossedman/vlx/internal/render"
 	"github.com/rossedman/vlx/internal/sanitize"
-	"github.com/rossedman/vlx/internal/schema"
 )
 
-func (m *Model) viewDetail(w, h int) string {
-	title := "Detail"
-	if m.showIDL {
-		title = "IDL"
-	}
-	if m.detail.TotalLineCount() > m.detail.Height {
-		title += mutedStyle.Render(fmt.Sprintf(" %d%%", int(m.detail.ScrollPercent()*100)))
-	}
-	return box(title, m.focus == paneDetail, w, h, strings.Split(m.detail.View(), "\n"))
-}
-
-// refreshDetail regenerates the detail pane for the current selection.
-func (m *Model) refreshDetail() {
-	width := max(m.detail.Width, 10)
-	var content string
-	switch {
-	case m.focus == paneServices || m.svc == nil:
-		content = m.detailService(width)
-	default:
-		r, ok := m.selectedRow()
-		switch {
-		case !ok:
-			content = m.detailService(width)
-		case m.showIDL:
-			content = render.IDL(r.iface.Description, true)
-			if r.iface.Err != nil && r.iface.Description == "" {
-				content = errStyle.Render(sanitize.Text(r.iface.Err.Error()))
-			}
-		default:
-			content = m.detailRow(r, width)
-		}
-	}
-	m.detail.SetContent(content)
-	m.detail.GotoTop()
-}
-
-func wrap(s string, width int) string {
-	return lipgloss.NewStyle().Width(width).Render(s)
-}
-
-func heading(s string) string {
-	return sectionStyle.Render(s)
-}
-
-var logo = []string{
-	"██╗   ██╗██╗     ██╗  ██╗",
-	"██║   ██║██║     ╚██╗██╔╝",
-	"╚██╗ ██╔╝██║      ╚███╔╝ ",
-	" ╚████╔╝ ██║      ██╔██╗ ",
-	"  ╚██╔╝  ███████╗██╔╝ ██╗",
-	"   ╚═╝   ╚══════╝╚═╝  ╚═╝",
-}
-
-var logoColors = []lipgloss.AdaptiveColor{
-	{Light: "#7C3AED", Dark: "#C4B5FD"},
-	{Light: "#7C3AED", Dark: "#A78BFA"},
-	{Light: "#6D28D9", Dark: "#8B5CF6"},
-	{Light: "#5B21B6", Dark: "#7C3AED"},
-	{Light: "#0E7490", Dark: "#22D3EE"},
-	{Light: "#0E7490", Dark: "#06B6D4"},
-}
-
-func (m *Model) welcome(width int) string {
-	var b strings.Builder
-	if width >= 28 {
-		for i, l := range logo {
-			b.WriteString(lipgloss.NewStyle().Foreground(logoColors[i]).Render(l))
-			b.WriteByte('\n')
-		}
-		b.WriteString(mutedStyle.Render("Varlink explorer"))
-		b.WriteString("\n\n")
-	}
-	switch {
-	case !m.discovered:
-		b.WriteString(mutedStyle.Render("Looking for Varlink sockets…"))
-	case len(m.sockets) == 0:
-		b.WriteString(wrap(textStyle.Render("No Varlink sockets were found in the usual places."), width))
-		b.WriteString("\n\n")
-		b.WriteString(wrap(mutedStyle.Render("systemd v257 or newer serves its APIs under /run/systemd. Try:"), width))
-		b.WriteString("\n\n  " + brandStyle.Render("vlx demo") + mutedStyle.Render("          a sample service"))
-		b.WriteString("\n  " + brandStyle.Render("vlx PATH") + mutedStyle.Render("          a socket anywhere"))
-		b.WriteString("\n  " + brandStyle.Render("--search DIR") + mutedStyle.Render("      look somewhere else"))
-	default:
-		b.WriteString(textStyle.Render(fmt.Sprintf("Found %d services. ", len(m.sockets))))
-		b.WriteString(mutedStyle.Render("Pick one and press ") + brandStyle.Render("⏎") + mutedStyle.Render("."))
-		b.WriteString("\n\n")
-		intro := "Nothing is sent to a service until you open it. "
-		if m.cfg.Preview {
-			intro = "As you move, vlx reads each service's description with read-only introspection. "
-		}
-		b.WriteString(wrap(mutedStyle.Render(intro+modeExplanation(m.policy.AllowWrites)), width))
-	}
-	return b.String()
-}
-
-func modeExplanation(writes bool) string {
-	if writes {
-		return "Writes are enabled: vlx asks before every WRITE call and makes you type the name of DANGER methods."
-	}
-	return "vlx is read-only: you can prepare any call, but only READ methods are sent. Restart with --allow-writes to change that."
-}
-
-func (m *Model) detailService(width int) string {
-	s, ok := m.selectedSocket()
-	if m.focus != paneServices && m.svcPath != "" {
-		s, _ = socketFor(m.svcPath, m.sockets)
-		ok = true
-	}
-	if !ok {
-		return m.welcome(width)
-	}
-	var b strings.Builder
-	b.WriteString(boldStyle.Render(sanitize.Line(s.Name)) + "\n")
-	b.WriteString(mutedStyle.Render(sanitize.Line(s.Path)) + "\n")
-	if !s.Accessible {
-		b.WriteString("\n" + wrap(warnStyle.Render("⊘ You do not have permission to connect to this socket. Try sudo."), width) + "\n")
-	}
-	st := m.state[s.Path]
-	switch {
-	case st == nil:
-		b.WriteString("\n" + mutedStyle.Render("Press ") + brandStyle.Render("⏎") + mutedStyle.Render(" to connect and introspect."))
-		return b.String()
-	case st.loading:
-		b.WriteString("\n" + m.spinner.View() + mutedStyle.Render(" introspecting…"))
-		return b.String()
-	case st.err != nil:
-		b.WriteString("\n" + errStyle.Render("✗ ") + wrap(errStyle.Render(sanitize.Line(st.err.Error())), width-2))
-		if hint := client.Hint(st.err); hint != "" {
-			b.WriteString("\n\n" + wrap(mutedStyle.Render(hint), width))
-		}
-		return b.String()
-	}
-	if m.svc == nil || m.svc.Path != s.Path {
-		b.WriteString("\n" + mutedStyle.Render("Press ⏎ to open."))
-		return b.String()
-	}
-	info := m.svc.Info
-	if m.focus == paneServices {
-		b.WriteString("\n" + mutedStyle.Render("Press ") + brandStyle.Render("⏎") + mutedStyle.Render(" or ") + brandStyle.Render("→") + mutedStyle.Render(" to explore its interfaces.") + "\n")
-	}
-	b.WriteString(heading("Service") + "\n")
-	for _, kv := range [][2]string{
-		{"vendor", info.Vendor}, {"product", info.Product}, {"version", info.Version}, {"url", info.URL},
-	} {
-		if kv[1] != "" {
-			b.WriteString(fmt.Sprintf("%s %s\n", mutedStyle.Render(fmt.Sprintf("%-8s", kv[0])), textStyle.Render(sanitize.Line(kv[1]))))
-		}
-	}
-	b.WriteString(heading("Interfaces") + "\n")
-	for _, i := range m.svc.Interfaces {
-		line := "• " + textStyle.Render(sanitize.Line(i.Name))
-		if i.Parsed != nil {
-			line += mutedStyle.Render(fmt.Sprintf("  %d methods", len(i.Parsed.Methods)))
-		} else if i.Err != nil {
-			line += errStyle.Render("  ✗ " + sanitize.Line(i.Err.Error()))
-		}
-		b.WriteString(line + "\n")
-	}
-	return b.String()
-}
-
-func (m *Model) detailRow(r row, width int) string {
+func (m *Model) detailRow(r item, width int) string {
 	var b strings.Builder
 	switch r.kind {
-	case rowIface:
-		b.WriteString(boldStyle.Render(sanitize.Line(r.iface.Name)) + "\n")
+	case itemIface:
 		if r.iface.Parsed == nil {
 			b.WriteString("\n" + errStyle.Render("✗ ") + wrap(errStyle.Render(sanitize.Line(fmt.Sprint(r.iface.Err))), width-2))
 			return b.String()
@@ -189,7 +26,7 @@ func (m *Model) detailRow(r row, width int) string {
 		if p.Doc != "" {
 			b.WriteString("\n" + wrap(docStyle.Render(sanitize.Text(p.Doc)), width) + "\n")
 		}
-		b.WriteString("\n" + mutedStyle.Render(fmt.Sprintf("%d methods · %d types · %d errors", len(p.Methods), len(p.Types), len(p.Errors))) + "\n")
+		b.WriteString("\n" + mutedStyle.Render(counts(p)) + "\n")
 		if len(p.Methods) > 0 {
 			b.WriteString(heading("Methods") + "\n")
 			for _, mt := range p.Methods {
@@ -201,12 +38,10 @@ func (m *Model) detailRow(r row, width int) string {
 				b.WriteByte('\n')
 			}
 		}
-		b.WriteString("\n" + mutedStyle.Render("Press i for the IDL source."))
-	case rowMethod:
+		b.WriteString("\n" + mutedStyle.Render("Press ctrl+d for the IDL source."))
+	case itemMethod:
 		m.detailMethod(&b, r, width)
-	case rowType:
-		b.WriteString(mutedStyle.Render("type ") + boldStyle.Render(sanitize.Line(r.typ.Name)) + "\n")
-		b.WriteString(mutedStyle.Render(sanitize.Line(r.iface.Name)) + "\n")
+	case itemType:
 		if r.typ.Doc != "" {
 			b.WriteString("\n" + wrap(docStyle.Render(sanitize.Text(r.typ.Doc)), width) + "\n")
 		}
@@ -218,9 +53,7 @@ func (m *Model) detailRow(r row, width int) string {
 				b.WriteString("• " + textStyle.Render(sanitize.Line(u)) + "\n")
 			}
 		}
-	case rowError:
-		b.WriteString(mutedStyle.Render("error ") + errStyle.Bold(true).Render(sanitize.Line(r.err.Name)) + "\n")
-		b.WriteString(mutedStyle.Render(sanitize.Line(r.qualified())) + "\n")
+	case itemError:
 		if r.err.Doc != "" {
 			b.WriteString("\n" + wrap(docStyle.Render(sanitize.Text(r.err.Doc)), width) + "\n")
 		}
@@ -237,11 +70,10 @@ func kindLabel(t *idl.Type) string {
 	return "Fields"
 }
 
-func (m *Model) detailMethod(b *strings.Builder, r row, width int) {
+func (m *Model) detailMethod(b *strings.Builder, r item, width int) {
 	mt := r.method
-	b.WriteString(mutedStyle.Render("method ") + boldStyle.Render(sanitize.Line(mt.Name)) + "\n")
-	b.WriteString(mutedStyle.Render(sanitize.Line(r.iface.Name)) + "\n\n")
 
+	r.verdict = m.classifier.Classify(r.qualified())
 	tags := []string{classTag(r.verdict.Class)}
 	switch mt.More {
 	case idl.MoreRequired:
@@ -283,7 +115,6 @@ func (m *Model) detailMethod(b *strings.Builder, r row, width int) {
 	if !d.Allowed {
 		b.WriteString(wrap(warnStyle.Render("Blocked in read-only mode: you can prepare this call but not send it."), width) + "\n")
 	}
-	b.WriteString("\n" + mutedStyle.Render("Press ") + brandStyle.Render("⏎") + mutedStyle.Render(" or ") + brandStyle.Render("c") + mutedStyle.Render(" to call, ") + brandStyle.Render("y") + mutedStyle.Render(" to copy the command."))
 }
 
 // writeFields renders the fields of a struct type as "name  type" lines
@@ -410,11 +241,6 @@ func usersOf(iface *idl.Interface, name string) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-// skeletonFor returns the parameter skeleton for a method row.
-func skeletonFor(r row) (string, []string) {
-	return schema.Skeleton(r.iface.Parsed, r.method.In)
 }
 
 // errorDoc finds the IDL documentation for a qualified error name among the

@@ -7,7 +7,7 @@ description: Call Varlink methods with vlx call — parameters, method names, st
 `vlx call` calls one method and prints the replies.
 
 ```sh
-vlx call SERVICE METHOD [PARAMS]
+vlx call SERVICE METHOD [PARAMS | NAME=VALUE ...]
 ```
 
 ```console
@@ -39,13 +39,23 @@ Use the qualified name (`io.systemd.Hostname.Describe`), or just the method
 
 ## Parameters
 
-PARAMS is a JSON object. Leave it out for `{}`.
+Give parameters as `NAME=VALUE` pairs — the same form the explorer's command
+line uses — or as one JSON object. Leave them out for `{}`.
 
 ```sh
+vlx call resolve ResolveHostname name=example.com family=2
+vlx call demo GetGreeting name='Ada Lovelace' language=german
 vlx call resolve ResolveHostname '{"name": "example.com"}'
 echo '{"name": "example.com"}' | vlx call resolve ResolveHostname -
 vlx call resolve ResolveHostname -f params.json
 ```
+
+With `NAME=VALUE`, vlx converts each value using the method's IDL: strings
+and enum values are taken as typed (`name=123` stays a string for a string
+parameter), and everything else — numbers, booleans, arrays, structs — is
+JSON (`ids=[1,2]`, `where='{"x":1}'`). An unknown or repeated name is a usage
+error that lists the method's parameters. `NAME=VALUE` cannot be combined
+with `-f` or `--no-validate`.
 
 Not sure what a method takes? Ask for a template:
 

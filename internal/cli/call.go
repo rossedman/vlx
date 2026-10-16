@@ -14,6 +14,7 @@ import (
 	"github.com/rossedman/sdvarlink/idl"
 
 	"github.com/rossedman/vlx/internal/client"
+	"github.com/rossedman/vlx/internal/cmdline"
 	"github.com/rossedman/vlx/internal/render"
 	"github.com/rossedman/vlx/internal/safety"
 	"github.com/rossedman/vlx/internal/schema"
@@ -32,12 +33,13 @@ type callFlags struct {
 func newCallCommand(a *app) *cobra.Command {
 	var f callFlags
 	cmd := &cobra.Command{
-		Use:     "call SERVICE METHOD [PARAMS]",
+		Use:     "call SERVICE METHOD [PARAMS | NAME=VALUE...]",
 		GroupID: "call",
 		Short:   "Call a method and print the reply",
-		Long: `Call METHOD on SERVICE with PARAMS, a JSON object ('-' reads stdin, -f reads a
-file, and no PARAMS means {}). Parameters are checked against the method's IDL
-before anything is sent.
+		Long: `Call METHOD on SERVICE. Give parameters as NAME=VALUE pairs (the explorer's
+command-line syntax: strings are taken literally, other values are JSON) or as
+one JSON object ('-' reads stdin, -f reads a file, and nothing means {}).
+Parameters are checked against the method's IDL before anything is sent.
 
 Safety: methods are classified READ, WRITE or DANGER. vlx only sends READ
 methods unless you pass --allow-writes. WRITE calls then ask for confirmation
@@ -48,11 +50,12 @@ object per line otherwise (or with -o json). Streams (--more) print every
 reply as it arrives. Exit status is 3 when the service returns an error,
 4 when vlx refuses a call, 5 when the service cannot be found.`,
 		Example: `  vlx call hostname io.systemd.Hostname.Describe
+  vlx call resolve ResolveHostname name=example.com family=2
   vlx call resolve ResolveHostname '{"name":"example.com"}'
   echo '{"name":"example.com"}' | vlx call resolve ResolveHostname -
   vlx call multiplexer GetUserRecord '{"service":"io.systemd.Multiplexer"}' --more
   vlx call demo SetDefaultLanguage '{"language":"german"}' --allow-writes --yes`,
-		Args:              usageArgs(cobra.RangeArgs(2, 3)),
+		Args:              usageArgs(cobra.MinimumNArgs(2)),
 		ValidArgsFunction: completeService(a),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCall(cmd.Context(), a, f, args)
@@ -69,6 +72,33 @@ reply as it arrives. Exit status is 3 when the service returns an error,
 	cmd.MarkFlagsMutuallyExclusive("more", "oneway")
 	cmd.MarkFlagsMutuallyExclusive("file", "dry-run")
 	return cmd
+}
+
+// kvArgs returns the NAME=VALUE arguments after METHOD, or nil when the
+// parameters are given as JSON (or not at all).
+func kvArgs(args []string) ([]cmdline.Arg, error) {
+	rest := args[2:]
+	if len(rest) == 0 || len(rest) == 1 && !looksLikeArg(rest[0]) {
+		return nil, nil
+	}
+	l, err := cmdline.Parse("x y " + quoteAll(rest))
+	if err != nil {
+		return nil, usageError(fmt.Errorf("parameters: %w (give one JSON object, or NAME=VALUE pairs)", err))
+	}
+	return l.Args, nil
+}
+
+func looksLikeArg(s string) bool {
+	name, _, ok := strings.Cut(s, "=")
+	return ok && name != "" && !strings.ContainsAny(name, "{[\" \t")
+}
+
+func quoteAll(words []string) string {
+	q := make([]string, len(words))
+	for i, w := range words {
+		q[i] = cmdline.Quote(w)
+	}
+	return strings.Join(q, " ")
 }
 
 func readParams(a *app, f callFlags, args []string) ([]byte, error) {
@@ -96,9 +126,22 @@ func runCall(ctx context.Context, a *app, f callFlags, args []string) error {
 	if err != nil {
 		return err
 	}
-	raw, err := readParams(a, f, args)
+	kv, err := kvArgs(args)
 	if err != nil {
 		return err
+	}
+	var raw []byte
+	switch {
+	case kv != nil && f.file != "":
+		return usageError(errors.New("give NAME=VALUE pairs or --file, not both"))
+	case kv != nil && f.noValidate:
+		return usageError(errors.New("NAME=VALUE needs the method's IDL to convert values; drop --no-validate or pass a JSON object"))
+	case kv == nil && len(args) > 3:
+		return usageError(errors.New("give one JSON object, or NAME=VALUE pairs"))
+	case kv == nil:
+		if raw, err = readParams(a, f, args); err != nil {
+			return err
+		}
 	}
 	method := args[1]
 	more := f.more
@@ -113,6 +156,11 @@ func runCall(ctx context.Context, a *app, f callFlags, args []string) error {
 			return &ExitError{Code: ExitNotFound, Err: err}
 		}
 		method = iface.Name + "." + m.Name
+		if kv != nil {
+			if raw, err = cmdline.Params(iface.Parsed, m.In, kv); err != nil {
+				return usageError(fmt.Errorf("parameters for %s: %w", method, err))
+			}
+		}
 		if err := schema.Validate(iface.Parsed, m.In, raw); err != nil {
 			return usageError(fmt.Errorf("parameters for %s: %w\n(run 'vlx template %s %s' for a starting point)", method, err, args[0], method))
 		}

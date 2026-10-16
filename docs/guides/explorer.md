@@ -1,5 +1,5 @@
 ---
-description: A tour of the vlx explorer — panes, symbols, filtering, the IDL view and the call screen.
+description: A tour of the vlx explorer — pages, the command line, method pages and their results.
 ---
 
 # The explorer
@@ -8,103 +8,108 @@ Run `vlx` (or `vlx explore`) to open the explorer. Give it a service to jump
 straight in:
 
 ```sh
-vlx                                       # pick from discovered sockets
+vlx                                       # start from the list of services
 vlx hostname                              # a unique part of a socket name
 vlx /run/systemd/io.systemd.Hostname      # a path
 vlx unix:/run/systemd/io.systemd.Manager  # varlinkctl's address form
 ```
 
-![The explorer](../assets/screens/browse.png){ .vlx-shot }
+![The explorer's home page](../assets/screens/home.png){ .vlx-shot }
+
+The explorer shows **one page at a time** — all services, one service, one
+method — and a **command line** along the bottom that is always there. Use
+the arrow keys and ++enter++ to drill down, or just start typing to jump
+anywhere.
 
 ## The header
 
-The header shows the socket you are connected to and two badges:
+The top line is a breadcrumb — `vlx › Services › Resolve › ResolveHostname`
+— and two badges:
 
 - **`READ-ONLY`** (green) or **`WRITES ENABLED`** (amber) — the
   [safety mode](safety.md).
 - **`ROOT`** (red) when vlx runs as root, as a reminder that calls run with
   full privileges.
 
-## The panes
+++esc++ (or ++left++) always goes up one level.
 
-| Pane | What it shows |
-| --- | --- |
-| **Services** | Every socket vlx found. Rest the cursor on one and its interfaces appear next door. |
-| **Interfaces** | A tree of the interfaces the open service implements, with their methods, types and errors. |
-| **Detail** | Everything about the selection: docs, parameters, return values, the types used, errors, and the safety class with its reason. |
+## Services
 
-Narrow terminals (under 100 columns) show two panes at a time; the focused
-one decides which.
+The home page lists every socket vlx found, grouped — System, Network,
+Users & login, Machines & images, Storage, Security, Devices, Your session —
+with a plain-language description of what each one is for. Your most recent
+calls sit at the top; ++enter++ on one brings it back with the same
+parameters.
 
 ### Preview
 
-As you move through **Services**, vlx reads each service's description in
-the background and shows its interfaces straight away — no need to open it
-first. This uses only the read-only introspection methods every Varlink
-service implements, and results are cached, so moving back is instant.
-Press ++enter++ or ++right++ to move into the tree.
-
-Prefer to connect only when you ask? Set `preview: false` in the
+As the cursor rests on a service, vlx reads its description in the
+background and shows how many methods it has. This uses only the read-only
+introspection methods every Varlink service implements, and results are
+cached. Prefer to connect only when you ask? Set `preview: false` in the
 [config](configuration.md) or run `vlx --no-preview`.
 
-The `org.varlink.service` and `io.systemd.service` interfaces, which every
-service carries, start collapsed so the service's own API comes first.
+## A service
 
-## Search everything
+![A service page](../assets/screens/service.png){ .vlx-shot }
 
-Press ++ctrl+k++ (or ++":"++) and type what you are looking for:
+A service page lists its interfaces with their methods, types and errors,
+each with the first line of its documentation and, for methods, its
+[safety class](safety.md). The `org.varlink.service` and
+`io.systemd.service` interfaces, which every service carries, start
+collapsed.
 
-![The search palette](../assets/screens/palette.png){ .vlx-shot }
+++enter++ opens a method, type or error; ++space++ expands or collapses an
+interface; ++ctrl+d++ shows documentation and the raw IDL.
 
-The palette searches every service, interface, method, type and error at
-once, and reads services you have not opened yet in the background. Type a
-few words in any order — `resolve host`, `user record`, `unit list` — and
-press ++enter++ to jump there. With nothing typed it lists the services, so
-it also works as a quick service switcher.
+## The command line
 
-### Symbols
+Start typing on any list page — or press ++"/"++, ++":"++ or ++ctrl+k++ —
+and the command line shows what matches across every service, interface,
+method, type and error:
 
-vlx never relies on colour alone: every state also has a glyph or a word.
+![Searching from the command line](../assets/screens/search.png){ .vlx-shot }
 
-| Symbol | Meaning |
-| --- | --- |
-| `ƒ` | method with a single reply |
-| `⌁` | method that streams (supports or requires `more`) |
-| `τ` | type |
-| `!` | error |
-| `●` / `○` / `✗` | service connected / not opened yet / failed |
-| `⊘` | you lack permission to connect to this socket |
-| <span class="vlx-read">READ</span> <span class="vlx-write">WRITE</span> <span class="vlx-danger">DANGER</span> | the method's [safety class](safety.md) |
+Type a few words in any order (`resolve host`, `user record`, `unit list`),
+pick with ++up++ / ++down++, and press ++enter++ to go there, or ++tab++ to
+complete the line.
 
-## Moving around
+Keep typing and the line becomes a call:
 
-| Key | Action |
-| --- | --- |
-| ++up++ ++down++ / ++k++ ++j++ | move |
-| ++tab++ ++shift+tab++ / ++left++ ++right++ / ++h++ ++l++ | change pane |
-| ++enter++ | open a service, expand an interface, or call a method |
-| ++space++ | expand or collapse an interface |
-| ++ctrl+k++ / ++":"++ | search everything |
-| ++"/"++ | filter the focused list; ++enter++ keeps the filter, ++esc++ clears it |
-| ++i++ | show the raw IDL of the selected interface |
-| ++y++ | copy the `vlx call` command for the selected method |
-| ++r++ | re-discover sockets and re-introspect the service |
-| ++esc++ | go back one step |
-| ++"?"++ | help |
-| ++q++ | quit |
+```text
+SERVICE [METHOD] [NAME=VALUE ...]
+```
 
-Filtering the interfaces tree searches across every interface at once:
-++"/"++ then `user` shows every method, type and error with *user* in its
-name.
+```text
+demo GetGreeting name=Ada language=german
+resolve ResolveHostname name=example.com
+hostname Describe
+```
 
-## The call screen
+- **SERVICE** is anything `vlx call` accepts: a unique part of a socket
+  name, a socket name or a path. An interface's name works too — `unit List`
+  finds `io.systemd.Unit` on the service manager — and so does a method name
+  on its own when only one service has it.
+- **NAME=VALUE** sets a parameter. Quote values with spaces like a shell:
+  `name='Ada Lovelace'`. Strings and enum values are taken as typed;
+  numbers, booleans, arrays and structs are JSON.
 
-Press ++enter++ or ++c++ on a method.
+As soon as the line names a method, the popup lists its parameters. ++enter++
+opens the method page and, if you gave parameters (or the method needs
+none), sends the call. ++up++ and ++down++ on an empty match list bring back
+earlier calls, like a shell's history.
 
-![Streaming replies](../assets/screens/stream.png){ .vlx-shot }
+## A method
 
-On the left is the **parameter form**: one row per parameter, with its type
-and an input that suits it.
+![A method page](../assets/screens/method.png){ .vlx-shot }
+
+A method page has the method's documentation, a **parameter form**, and the
+**result** of the last call, followed by earlier calls of the same method.
+
+**The form and the command line are the same call.** Edit a field and the
+command line updates; press ++tab++ to move to the command line, edit it,
+and the form follows. ++enter++ there sends; ++ctrl+s++ sends from anywhere
+on the page.
 
 ![The parameter form](../assets/screens/form.png){ .vlx-shot }
 
@@ -115,51 +120,58 @@ and an input that suits it.
 | `bool`, enums | ++left++ / ++right++ or ++space++ to choose, or type the first letters |
 | structs, arrays, maps | a JSON value, pre-filled with a skeleton |
 
-Move between rows with ++up++ / ++down++ or ++enter++. The current row
-shows the parameter's documentation. **Optional** parameters (`?T`) are
-left out until you give them a value — for choices, the first option is
-`(unset)`.
+Move between fields with ++up++ / ++down++. The current field shows its
+documentation. **Optional** parameters (`?T`) are left out until you give
+them a value. vlx checks every value against the IDL as you type and will
+not send invalid parameters. Prefer JSON? ++ctrl+j++ edits all the
+parameters as one JSON object, and back.
 
-vlx checks every field against the IDL as you type and shows problems under
-the field they belong to; it will not send invalid parameters.
-
-Prefer JSON? Press ++ctrl+j++ to edit all the parameters as one JSON
-object, and ++ctrl+j++ again to go back to the form. Your values come with
-you both ways.
-
-Above the editor are the method's safety class and two toggles:
+Under the form are two toggles and whether the parameters are valid:
 
 - **more** — ask for a stream of replies. On for methods that stream, forced
   on for methods that require it, unavailable for methods that cannot.
 - **oneway** — send without waiting for a reply. A oneway call is always
   treated as at least a <span class="vlx-write">WRITE</span>.
 
-On the right is the **response**: every reply as colourised JSON with its
-number and arrival time, the error (with its IDL documentation) if the call
-failed, and a hint when vlx knows what to do about it.
+The **result** shows every reply as colourised JSON with its number and
+arrival time, the error (with its IDL documentation) if the call failed, and
+a hint when vlx knows what to do about it. Streams arrive live; ++esc++
+stops them.
 
-| Key | Action |
-| --- | --- |
-| ++ctrl+s++ | send |
-| ++tab++ | switch between parameters and response |
-| ++ctrl+j++ | switch between the form and JSON |
-| ++ctrl+t++ / ++ctrl+o++ | toggle more / oneway |
-| ++ctrl+r++ | reset the parameters to the skeleton |
-| ++ctrl+y++ | copy the equivalent `vlx call` and `varlinkctl call` commands |
-| ++y++ | (response) copy the replies as JSON |
-| ++shift+r++ | (response) reveal redacted values |
-| ++esc++ | stop a running stream, or go back to the tree |
+![Streaming replies](../assets/screens/stream.png){ .vlx-shot }
 
-Your edits are kept per method until you quit, so you can go back and forth.
+++tab++ cycles the form → the command line → the result. With the result
+focused, ++up++ / ++down++ scroll, ++y++ copies the replies as JSON and
+++shift+r++ reveals redacted values. ++ctrl+y++ copies the call as `vlx call`
+and `varlinkctl call` commands.
+
+Each method keeps its parameters and last result until you quit, so you can
+wander off and come back.
 
 !!! info "Clipboard"
     vlx copies with the OSC 52 escape sequence, which most modern terminals
     (and tmux with `set -g set-clipboard on`) support, including over SSH.
+
+## Symbols
+
+vlx never relies on colour alone: every state also has a glyph or a word.
+
+| Symbol | Meaning |
+| --- | --- |
+| `ƒ` | method with a single reply |
+| `⌁` | method that streams (supports or requires `more`) |
+| `τ` | type |
+| `!` | error |
+| `●` / `○` / `✗` | service read / not read yet / failed |
+| `⊘` | you lack permission to connect to this socket |
+| <span class="vlx-read">READ</span> <span class="vlx-write">WRITE</span> <span class="vlx-danger">DANGER</span> | the method's [safety class](safety.md) |
 
 ## Redaction
 
 Values under keys that look secret — `password`, `hashedPassword`,
 `privileged`, anything with `token`, `secret` or `privateKey` — are shown as
 `«redacted»` so they do not end up in screenshots or screen shares. Press
-++shift+r++ on the response to reveal them; configure the patterns with
+++shift+r++ on the result to reveal them; configure the patterns with
 [`redact`](configuration.md).
+
+All the keys are listed on the [Keys](../reference/keys.md) page.

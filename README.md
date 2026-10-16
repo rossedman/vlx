@@ -19,7 +19,7 @@ that ship in their IDL, and calls methods with an editor that already knows
 the schema. It is **read-only by default**.
 
 <p align="center">
-  <img src="docs/assets/screens/browse.png" alt="The vlx explorer" width="92%">
+  <img src="docs/assets/screens/method.png" alt="The vlx explorer" width="92%">
 </p>
 
 ## QuickStart
@@ -31,9 +31,9 @@ vlx demo                                              # a sample service, works 
 
 Then:
 
-1. ↑/↓ to pick a method (or **Ctrl+K** to search), **⏎** to open it.
-2. Fill in the form: one row per parameter, with its docs.
-3. **ctrl+s** to send. Replies stream in on the right.
+1. ↑/↓ and **⏎** to drill down to a method — or just type: `demo GetGreeting name=Ada` **⏎**.
+2. Fill in the form, or edit the command line under it; the two stay in sync.
+3. **ctrl+s** to send. Replies stream in underneath.
 
 On a Linux machine with systemd v257+, run plain **`vlx`** to explore your
 system (`sudo vlx` for services that only talk to root).
@@ -48,9 +48,9 @@ method name and the JSON it wants. vlx is for everything before that:
 | | |
 | --- | --- |
 | **Zero-config discovery** | Finds sockets in `/run/varlink/registry`, `/run/systemd/**`, `/run/udev` and your user session. |
-| **Browse with docs** | Interfaces appear as you move; doc comments, expanded types, streaming hints. |
-| **Search everything** | Ctrl+K finds any service, method, type or error on the machine: `resolve host`. |
-| **Form-based calls** | One field per parameter, pickers for enums, inline docs and errors; Ctrl+J for raw JSON. |
+| **Browse with docs** | Services grouped and described in plain language; one page per service and method, with doc comments and types. |
+| **A command line** | Type to jump to any service, method, type or error, or run a call: `resolve ResolveHostname name=example.com`. |
+| **Form-based calls** | One field per parameter, pickers for enums, inline docs and errors, kept in sync with the command line; Ctrl+J for raw JSON. |
 | **Live streams** | `more` replies arrive as they happen; Esc stops them. |
 | **Safe by default** | READ / WRITE / DANGER classification; writes need `--allow-writes` *and* a confirmation. |
 | **Scriptable** | `vlx call … -o json`, NDJSON streams, stable exit codes. |
