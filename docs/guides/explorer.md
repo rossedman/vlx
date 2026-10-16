@@ -29,12 +29,38 @@ The header shows the socket you are connected to and two badges:
 
 | Pane | What it shows |
 | --- | --- |
-| **Services** | Every socket vlx found. Nothing is sent to a service until you press ++enter++ on it. |
+| **Services** | Every socket vlx found. Rest the cursor on one and its interfaces appear next door. |
 | **Interfaces** | A tree of the interfaces the open service implements, with their methods, types and errors. |
 | **Detail** | Everything about the selection: docs, parameters, return values, the types used, errors, and the safety class with its reason. |
 
 Narrow terminals (under 100 columns) show two panes at a time; the focused
 one decides which.
+
+### Preview
+
+As you move through **Services**, vlx reads each service's description in
+the background and shows its interfaces straight away — no need to open it
+first. This uses only the read-only introspection methods every Varlink
+service implements, and results are cached, so moving back is instant.
+Press ++enter++ or ++right++ to move into the tree.
+
+Prefer to connect only when you ask? Set `preview: false` in the
+[config](configuration.md) or run `vlx --no-preview`.
+
+The `org.varlink.service` and `io.systemd.service` interfaces, which every
+service carries, start collapsed so the service's own API comes first.
+
+## Search everything
+
+Press ++ctrl+k++ (or ++":"++) and type what you are looking for:
+
+![The search palette](../assets/screens/palette.png){ .vlx-shot }
+
+The palette searches every service, interface, method, type and error at
+once, and reads services you have not opened yet in the background. Type a
+few words in any order — `resolve host`, `user record`, `unit list` — and
+press ++enter++ to jump there. With nothing typed it lists the services, so
+it also works as a quick service switcher.
 
 ### Symbols
 
@@ -58,6 +84,7 @@ vlx never relies on colour alone: every state also has a glyph or a word.
 | ++tab++ ++shift+tab++ / ++left++ ++right++ / ++h++ ++l++ | change pane |
 | ++enter++ | open a service, expand an interface, or call a method |
 | ++space++ | expand or collapse an interface |
+| ++ctrl+k++ / ++":"++ | search everything |
 | ++"/"++ | filter the focused list; ++enter++ keeps the filter, ++esc++ clears it |
 | ++i++ | show the raw IDL of the selected interface |
 | ++y++ | copy the `vlx call` command for the selected method |
@@ -76,10 +103,29 @@ Press ++enter++ or ++c++ on a method.
 
 ![Streaming replies](../assets/screens/stream.png){ .vlx-shot }
 
-On the left is the **parameter editor**, pre-filled with a skeleton built
-from the method's input type: every required field has a typed placeholder,
-and optional fields are listed underneath. vlx validates what you type
-against the IDL on every keystroke, and will not send invalid parameters.
+On the left is the **parameter form**: one row per parameter, with its type
+and an input that suits it.
+
+![The parameter form](../assets/screens/form.png){ .vlx-shot }
+
+| Type | How you edit it |
+| --- | --- |
+| `string` | type text |
+| `int`, `float` | type a number |
+| `bool`, enums | ++left++ / ++right++ or ++space++ to choose, or type the first letters |
+| structs, arrays, maps | a JSON value, pre-filled with a skeleton |
+
+Move between rows with ++up++ / ++down++ or ++enter++. The current row
+shows the parameter's documentation. **Optional** parameters (`?T`) are
+left out until you give them a value — for choices, the first option is
+`(unset)`.
+
+vlx checks every field against the IDL as you type and shows problems under
+the field they belong to; it will not send invalid parameters.
+
+Prefer JSON? Press ++ctrl+j++ to edit all the parameters as one JSON
+object, and ++ctrl+j++ again to go back to the form. Your values come with
+you both ways.
 
 Above the editor are the method's safety class and two toggles:
 
@@ -95,7 +141,8 @@ failed, and a hint when vlx knows what to do about it.
 | Key | Action |
 | --- | --- |
 | ++ctrl+s++ | send |
-| ++tab++ | switch between editor and response |
+| ++tab++ | switch between parameters and response |
+| ++ctrl+j++ | switch between the form and JSON |
 | ++ctrl+t++ / ++ctrl+o++ | toggle more / oneway |
 | ++ctrl+r++ | reset the parameters to the skeleton |
 | ++ctrl+y++ | copy the equivalent `vlx call` and `varlinkctl call` commands |

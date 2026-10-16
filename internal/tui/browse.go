@@ -133,13 +133,20 @@ func (m *Model) rebuildRows() {
 }
 
 func (m *Model) browseHelpKeys() []key.Binding {
+	if m.palette != nil {
+		return []key.Binding{
+			key.NewBinding(key.WithKeys("up"), key.WithHelp("↑↓", "choose")),
+			key.NewBinding(key.WithKeys("enter"), key.WithHelp("⏎", "go")),
+			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "close")),
+		}
+	}
 	if m.filtering {
 		return []key.Binding{
 			key.NewBinding(key.WithKeys("enter"), key.WithHelp("⏎", "apply")),
 			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "clear")),
 		}
 	}
-	keys := []key.Binding{bk.Up, bk.Down, bk.Next}
+	keys := []key.Binding{bk.Palette, bk.Up, bk.Down, bk.Next}
 	switch m.focus {
 	case paneServices:
 		keys = append(keys, key.NewBinding(key.WithKeys("enter"), key.WithHelp("⏎", "open")))
@@ -157,12 +164,17 @@ func (m *Model) browseHelpKeys() []key.Binding {
 }
 
 func (m *Model) updateBrowse(msg tea.KeyMsg) tea.Cmd {
+	if m.palette != nil {
+		return m.updatePalette(msg)
+	}
 	if m.filtering {
 		return m.updateFilter(msg)
 	}
 	switch {
 	case key.Matches(msg, bk.Quit):
 		return tea.Quit
+	case key.Matches(msg, bk.Palette):
+		return m.openPalette()
 	case key.Matches(msg, bk.Help):
 		m.helpReturn = m.screen
 		m.screen = screenHelp
@@ -183,6 +195,12 @@ func (m *Model) updateBrowse(msg tea.KeyMsg) tea.Cmd {
 		}
 		m.layout()
 		return nil
+	case m.focus == paneServices && (key.Matches(msg, bk.Next) || key.Matches(msg, bk.Right)):
+		if m.svc == nil {
+			return m.openSelected()
+		}
+		m.cycleFocus(1)
+		return nil
 	case key.Matches(msg, bk.Next), key.Matches(msg, bk.Right):
 		m.cycleFocus(1)
 		return nil
@@ -198,8 +216,8 @@ func (m *Model) updateBrowse(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, bk.Refresh):
 		cmds := []tea.Cmd{discoverCmd(m.opts.Discovery)}
 		if m.svcPath != "" {
-			m.state[m.svcPath] = &sockState{loading: true}
-			cmds = append(cmds, introspectCmd(m.svcPath, m.copts), m.spinner.Tick)
+			delete(m.cache, m.svcPath)
+			cmds = append(cmds, m.introspect(m.svcPath))
 		}
 		return tea.Batch(append(cmds, m.setFlash("Refreshing…", true))...)
 	case key.Matches(msg, bk.IDL):
@@ -240,8 +258,7 @@ func (m *Model) updateFilter(msg tea.KeyMsg) tea.Cmd {
 		m.filtering = false
 		in.Blur()
 		in.SetValue("")
-		m.afterFilter()
-		return nil
+		return m.afterFilter()
 	case "up", "down":
 		m.filtering = false
 		in.Blur()
@@ -249,24 +266,28 @@ func (m *Model) updateFilter(msg tea.KeyMsg) tea.Cmd {
 	}
 	var cmd tea.Cmd
 	*in, cmd = in.Update(msg)
-	m.afterFilter()
-	return cmd
+	return tea.Batch(cmd, m.afterFilter())
 }
 
-func (m *Model) afterFilter() {
+func (m *Model) afterFilter() tea.Cmd {
 	if m.focus == paneServices {
 		m.svcCursor, m.svcOffset = 0, 0
-	} else {
-		m.rebuildRows()
-		m.memCursor, m.memOffset = 0, 0
-		for i, r := range m.rows {
-			if r.kind != rowIface {
-				m.memCursor = i
-				break
-			}
+		if s, ok := m.selectedSocket(); ok {
+			return m.showService(s.Path)
+		}
+		m.refreshDetail()
+		return nil
+	}
+	m.rebuildRows()
+	m.memCursor, m.memOffset = 0, 0
+	for i, r := range m.rows {
+		if r.kind != rowIface {
+			m.memCursor = i
+			break
 		}
 	}
 	m.refreshDetail()
+	return nil
 }
 
 func (m *Model) cycleFocus(dir int) {
@@ -307,27 +328,14 @@ func moveCursor(cursor, n int, msg tea.KeyMsg, page int) int {
 func (m *Model) updateServices(msg tea.KeyMsg) tea.Cmd {
 	vis := m.visibleSockets()
 	if key.Matches(msg, bk.Open) {
-		s, ok := m.selectedSocket()
-		if !ok {
-			return nil
-		}
-		if s.Path == m.svcPath && m.svc != nil {
-			m.focus = paneMembers
-			m.layout()
-			return nil
-		}
-		m.svcPath = s.Path
-		m.svc = nil
-		m.rows = nil
-		m.showIDL = false
-		m.state[s.Path] = &sockState{loading: true}
-		m.refreshDetail()
-		return tea.Batch(introspectCmd(s.Path, m.copts), m.spinner.Tick)
+		return m.openSelected()
 	}
 	before := m.svcCursor
 	m.svcCursor = moveCursor(m.svcCursor, len(vis), msg, m.bodyHeight()-3)
 	if before != m.svcCursor {
-		m.refreshDetail()
+		if s, ok := m.selectedSocket(); ok {
+			return m.showService(s.Path)
+		}
 	}
 	return nil
 }

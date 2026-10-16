@@ -34,12 +34,12 @@ Run `vlx`. It lists the Varlink sockets under `/run/systemd`, `/run/varlink/regi
 <div class="vlx-card" markdown>
 :material-file-tree:
 ### Browse
-Interfaces, methods, types and errors in a tree, with the docs from the IDL, expanded types and streaming hints.
+Interfaces appear as you move. ++ctrl+k++ searches every method, type and error on the machine at once.
 </div>
 <div class="vlx-card" markdown>
 :material-code-json:
 ### Call
-Parameters pre-filled from the schema and validated as you type. Replies stream in live, colourised and redacted.
+A form built from the schema — pickers for enums, inline docs, checks as you type. Replies stream in live.
 </div>
 <div class="vlx-card" markdown>
 :material-shield-check:

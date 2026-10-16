@@ -6,6 +6,7 @@ type browseKeys struct {
 	Up, Down, Left, Right, Next, Prev key.Binding
 	Open, Toggle, Call, IDL, Filter   key.Binding
 	Refresh, Copy, Help, Quit, Back   key.Binding
+	Palette                           key.Binding
 	PageUp, PageDown, Top, Bottom     key.Binding
 }
 
@@ -24,6 +25,7 @@ var bk = browseKeys{
 	Refresh:  key.NewBinding(key.WithKeys("r", "ctrl+r"), key.WithHelp("r", "refresh")),
 	Copy:     key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy cmd")),
 	Help:     key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
+	Palette:  key.NewBinding(key.WithKeys("ctrl+k", ":"), key.WithHelp("ctrl+k", "search")),
 	Quit:     key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	Back:     key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 	PageUp:   key.NewBinding(key.WithKeys("pgup", "ctrl+b"), key.WithHelp("pgup", "page up")),
@@ -33,9 +35,9 @@ var bk = browseKeys{
 }
 
 type callKeys struct {
-	Send, Reset, More, Oneway, Switch, Back key.Binding
-	CopyCmd, CopyResp, Reveal, Quit, Help   key.Binding
-	Up, Down, Top, Bottom                   key.Binding
+	Send, Reset, More, Oneway, Switch, Back, Mode key.Binding
+	CopyCmd, CopyResp, Reveal, Quit, Help         key.Binding
+	Up, Down, Top, Bottom                         key.Binding
 }
 
 var ck = callKeys{
@@ -44,6 +46,7 @@ var ck = callKeys{
 	More:     key.NewBinding(key.WithKeys("ctrl+t"), key.WithHelp("ctrl+t", "toggle more")),
 	Oneway:   key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "toggle oneway")),
 	Switch:   key.NewBinding(key.WithKeys("tab"), key.WithHelp("⇥", "editor/response")),
+	Mode:     key.NewBinding(key.WithKeys("ctrl+j"), key.WithHelp("ctrl+j", "form/JSON")),
 	Back:     key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "stop/back")),
 	CopyCmd:  key.NewBinding(key.WithKeys("ctrl+y"), key.WithHelp("ctrl+y", "copy cmd")),
 	CopyResp: key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy reply")),

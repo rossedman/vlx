@@ -43,12 +43,12 @@ func bindingRows(bs ...key.Binding) [][2]string {
 
 func (m *Model) viewHelp() string {
 	browse := helpSection("Browse", bindingRows(
-		bk.Up, bk.Down, bk.Next, bk.Prev, bk.Left, bk.Right,
+		bk.Palette, bk.Up, bk.Down, bk.Next, bk.Prev, bk.Left, bk.Right,
 		key.NewBinding(key.WithHelp("⏎", "open service · expand · call")),
 		bk.Toggle, bk.Call, bk.IDL, bk.Filter, bk.Copy, bk.Refresh, bk.Top, bk.Bottom, bk.Back, bk.Quit,
 	))
 	call := helpSection("Call", bindingRows(
-		ck.Send, ck.Switch, ck.More, ck.Oneway, ck.Reset, ck.CopyCmd, ck.CopyResp, ck.Reveal,
+		ck.Send, ck.Switch, ck.Mode, ck.More, ck.Oneway, ck.Reset, ck.CopyCmd, ck.CopyResp, ck.Reveal,
 		key.NewBinding(key.WithHelp("esc", "stop stream · back")),
 		ck.Quit,
 	))

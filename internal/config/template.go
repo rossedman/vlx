@@ -16,6 +16,12 @@ timeout: 10s
 # Largest message accepted from a service, in bytes.
 max_frame_size: 16777216
 
+# Introspect a service in the explorer as soon as the cursor rests on it,
+# so its interfaces show without pressing Enter. Introspection only uses the
+# read-only org.varlink.service methods. Set to false to connect only when
+# you open a service (or pass --no-preview).
+preview: true
+
 # Most stream replies kept in the TUI's response pane.
 max_replies: 1000
 

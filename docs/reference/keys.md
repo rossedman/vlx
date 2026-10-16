@@ -17,6 +17,7 @@ The bottom line of the explorer always shows the keys that work right now;
 | ++g++ / ++shift+g++ | top / bottom |
 | ++tab++ / ++shift+tab++ | next / previous pane |
 | ++left++ ++right++ / ++h++ ++l++ | previous / next pane |
+| ++ctrl+k++ / ++":"++ | search everything |
 | ++enter++ | open service · expand interface · call method |
 | ++space++ | expand or collapse an interface |
 | ++c++ | call the selected method |
@@ -27,6 +28,15 @@ The bottom line of the explorer always shows the keys that work right now;
 | ++esc++ | back: close IDL, leave filter, previous pane |
 | ++"?"++ | help |
 | ++q++ / ++ctrl+c++ | quit |
+
+## Search
+
+| Key | Action |
+| --- | --- |
+| *type* | search services, interfaces, methods, types and errors |
+| ++up++ ++down++ / ++tab++ | choose a result |
+| ++enter++ | jump to it |
+| ++esc++ / ++ctrl+k++ | close |
 
 ## Filter
 
@@ -41,7 +51,11 @@ The bottom line of the explorer always shows the keys that work right now;
 | Key | Action |
 | --- | --- |
 | ++ctrl+s++ | validate and send |
-| ++tab++ | switch between editor and response |
+| ++tab++ | switch between parameters and response |
+| ++ctrl+j++ | switch between the form and JSON |
+| ++up++ ++down++ / ++enter++ | (form) previous / next parameter |
+| ++left++ ++right++ / ++space++ | (form) change a choice |
+| ++backspace++ | (form) unset an optional choice |
 | ++ctrl+t++ | toggle `more` (streaming) |
 | ++ctrl+o++ | toggle `oneway` |
 | ++ctrl+r++ | reset parameters to the skeleton |
@@ -53,7 +67,7 @@ The bottom line of the explorer always shows the keys that work right now;
 | ++f1++ | help |
 | ++ctrl+c++ | quit |
 
-The editor also supports the usual editing keys: ++ctrl+a++ / ++ctrl+e++
+Text fields and the JSON editor also support the usual editing keys: ++ctrl+a++ / ++ctrl+e++
 for line start and end, ++ctrl+k++ / ++ctrl+u++ to delete after or before
 the cursor, ++alt+left++ / ++alt+right++ to move by word.
 

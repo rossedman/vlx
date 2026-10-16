@@ -70,9 +70,11 @@ safety class.
 ## <span class="vlx-step">3</span> Call a method
 
 1. Select **GetGreeting** under `io.vlx.demo.Greeter` and press ++enter++.
-2. The editor opens with the parameters already filled in from the schema:
-   `{"name": ""}`. Type a name between the quotes.
+2. A form opens with one row per parameter. Type a name, press ++down++, and
+   pick a **language** with ++left++ / ++right++.
 3. Press ++ctrl+s++ to send.
+
+![The parameter form](../assets/screens/form.png){ .vlx-shot }
 
 ![A call and its reply](../assets/screens/call.png){ .vlx-shot }
 
@@ -95,7 +97,9 @@ On a Linux machine with systemd v257 or newer, just run:
 vlx
 ```
 
-Pick a service, press ++enter++ to connect, and browse. Many system services
+Move through the services — each one's interfaces appear as you go — and
+press ++enter++ to browse one. Looking for something specific? Press
+++ctrl+k++ and type, for example, `resolve host`. Many system services
 only talk to root, so if a service shows `⊘` or *permission denied*:
 
 ```sh

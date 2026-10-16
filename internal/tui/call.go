@@ -48,6 +48,8 @@ type callState struct {
 	skeleton  string
 	optional  []string
 
+	form      *paramForm
+	jsonMode  bool
 	editor    textarea.Model
 	validErr  error
 	more      bool
@@ -98,11 +100,13 @@ func (m *Model) openCall(r row) tea.Cmd {
 	ed.BlurredStyle.Text = mutedStyle
 	ed.KeyMap.TransposeCharacterBackward.SetEnabled(false) // ctrl+t toggles more
 	staticCursorInTests(&ed.Cursor)
-	ed.SetValue(skel)
-	if d, ok := m.drafts[c.qualified]; ok {
-		ed.SetValue(d)
-	}
 	c.editor = ed
+	c.form = newParamForm(r.iface.Parsed, r.method.In)
+	initial := skel
+	if d, ok := m.drafts[c.qualified]; ok {
+		initial = d
+	}
+	c.setParams(initial)
 	ti := textinput.New()
 	ti.Prompt = "› "
 	ti.PromptStyle = errStyle
@@ -112,14 +116,71 @@ func (m *Model) openCall(r row) tea.Cmd {
 	c.confirmInput = ti
 	m.call = c
 	m.screen = screenCall
-	c.validate()
 	m.layoutCall()
 	m.refreshResponse(false)
-	return c.editor.Focus()
+	return c.focusEditor()
+}
+
+// params returns the parameters as JSON, from the form or the JSON editor.
+func (c *callState) params() string {
+	if c.jsonMode {
+		return c.editor.Value()
+	}
+	return c.form.JSON()
+}
+
+// setParams loads JSON parameters into the editor and, when it can
+// represent them, the form; otherwise it switches to JSON mode.
+func (c *callState) setParams(s string) {
+	c.editor.SetValue(s)
+	if !c.jsonMode {
+		if err := c.form.load(s); err != nil {
+			c.jsonMode = true
+		}
+	}
+	c.validate()
 }
 
 func (c *callState) validate() {
-	c.validErr = schema.Validate(c.row.iface.Parsed, c.row.method.In, []byte(c.editor.Value()))
+	if c.jsonMode {
+		c.validErr = schema.Validate(c.row.iface.Parsed, c.row.method.In, []byte(c.editor.Value()))
+		return
+	}
+	c.validErr = c.form.validate(c.row.method.In)
+}
+
+func (c *callState) focusEditor() tea.Cmd {
+	if c.jsonMode {
+		return c.editor.Focus()
+	}
+	return c.form.focus()
+}
+
+func (c *callState) blurEditor() {
+	c.editor.Blur()
+	c.form.blur()
+}
+
+// toggleMode switches between the form and the JSON editor, carrying the
+// parameters across.
+func (c *callState) toggleMode() error {
+	if c.jsonMode {
+		if err := c.form.load(c.editor.Value()); err != nil {
+			return fmt.Errorf("the form cannot show these parameters: %w", err)
+		}
+		c.jsonMode = false
+	} else {
+		for _, ff := range c.form.fields {
+			if _, _, problem := ff.value(); problem != "" {
+				return fmt.Errorf("fix %s first: %s", ff.name, problem)
+			}
+		}
+		c.editor.SetValue(c.form.JSON())
+		c.jsonMode = true
+	}
+	c.blurEditor()
+	c.validate()
+	return nil
 }
 
 func (c *callState) verdict(cl *safety.Classifier) safety.Verdict {
@@ -132,8 +193,10 @@ func (c *callState) forward(msg tea.Msg) tea.Cmd {
 	switch {
 	case c.confirm == confirmTyped:
 		c.confirmInput, cmd = c.confirmInput.Update(msg)
-	case !c.focusResp:
+	case !c.focusResp && c.jsonMode:
 		c.editor, cmd = c.editor.Update(msg)
+	case !c.focusResp:
+		cmd = c.form.forward(msg)
 	}
 	return cmd
 }
@@ -174,6 +237,8 @@ func (m *Model) layoutCall() {
 	// hints below.
 	c.editor.SetWidth(max(edW-4, 10))
 	c.editor.SetHeight(max(edH-2-3-m.hintLines(edW), 3))
+	c.form.width = max(edW-4, 10)
+	c.form.height = max(edH-2-3-2, 3)
 	c.resp.Width = max(respW-4, 10)
 	c.resp.Height = max(respH-2-1, 3)
 	m.rerenderReplies()
@@ -191,8 +256,8 @@ func (m *Model) hintLines(width int) int {
 	if m.call == nil {
 		return 0
 	}
-	n := 1 // validation line
-	if len(m.call.optional) > 0 {
+	n := 2 // validation and mode lines
+	if len(m.call.optional) > 0 && m.call.jsonMode {
 		n += min(len(m.call.optional), 4) + 1
 	}
 	_ = width
@@ -245,7 +310,7 @@ func (m *Model) refreshResponse(follow bool) {
 		b.WriteString(wrap(mutedStyle.Render("vlx starts read-only so that browsing can never change your system. To send WRITE and DANGER methods, quit and run vlx with --allow-writes (or set allow_writes: true in the config). vlx will still ask before each one."), width))
 	case !c.sent:
 		b.WriteString(mutedStyle.Render("Edit the parameters, then press ") + brandStyle.Render("ctrl+s") + mutedStyle.Render(" to send.") + "\n\n")
-		vlx, ctl := render.CallCommands(m.svcPath, c.qualified, compactOr(c.editor.Value()), c.more, c.oneway)
+		vlx, ctl := render.CallCommands(m.svcPath, c.qualified, compactOr(c.params()), c.more, c.oneway)
 		b.WriteString(mutedStyle.Render("Equivalent commands") + mutedStyle.Render(" (ctrl+y copies)") + "\n")
 		b.WriteString(wrap(textStyle.Render(sanitize.Line(vlx)), width) + "\n")
 		b.WriteString(wrap(mutedStyle.Render(sanitize.Line(ctl)), width) + "\n")
@@ -346,7 +411,7 @@ func (m *Model) callHelpKeys() []key.Binding {
 			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
 		}
 	}
-	keys := []key.Binding{ck.Send, ck.Switch}
+	keys := []key.Binding{ck.Send, ck.Switch, ck.Mode}
 	if c.row.method.More == idl.MoreSupported {
 		keys = append(keys, ck.More)
 	}
@@ -375,7 +440,7 @@ func (m *Model) updateCall(msg tea.KeyMsg) tea.Cmd {
 			m.stopCall()
 			return nil
 		}
-		m.drafts[c.qualified] = c.editor.Value()
+		m.drafts[c.qualified] = c.params()
 		m.screen = screenBrowse
 		m.focus = paneMembers
 		m.layout()
@@ -389,10 +454,17 @@ func (m *Model) updateCall(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, ck.Switch):
 		c.focusResp = !c.focusResp
 		if c.focusResp {
-			c.editor.Blur()
+			c.blurEditor()
 			return nil
 		}
-		return c.editor.Focus()
+		return c.focusEditor()
+	case key.Matches(msg, ck.Mode):
+		if err := c.toggleMode(); err != nil {
+			return m.setFlash(err.Error(), false)
+		}
+		c.focusResp = false
+		m.layoutCall()
+		return c.focusEditor()
 	case key.Matches(msg, ck.More):
 		switch c.row.method.More {
 		case idl.MoreRequired:
@@ -416,12 +488,17 @@ func (m *Model) updateCall(msg tea.KeyMsg) tea.Cmd {
 		m.refreshResponse(false)
 		return nil
 	case key.Matches(msg, ck.Reset):
-		c.editor.SetValue(c.skeleton)
-		c.validate()
+		c.form = newParamForm(c.row.iface.Parsed, c.row.method.In)
+		c.jsonMode = false
+		c.setParams(c.skeleton)
+		m.layoutCall()
 		m.refreshResponse(false)
-		return nil
+		if c.focusResp {
+			return nil
+		}
+		return c.focusEditor()
 	case key.Matches(msg, ck.CopyCmd):
-		vlx, ctl := render.CallCommands(m.svcPath, c.qualified, compactOr(c.editor.Value()), c.more, c.oneway)
+		vlx, ctl := render.CallCommands(m.svcPath, c.qualified, compactOr(c.params()), c.more, c.oneway)
 		return copyCmd(vlx+"\n"+ctl, "the vlx and varlinkctl commands")
 	}
 
@@ -448,6 +525,14 @@ func (m *Model) updateCall(msg tea.KeyMsg) tea.Cmd {
 		return cmd
 	}
 
+	if !c.jsonMode {
+		cmd, changed := c.form.update(msg)
+		if changed {
+			c.validate()
+			m.refreshResponse(false)
+		}
+		return cmd
+	}
 	before := c.editor.Value()
 	var cmd tea.Cmd
 	c.editor, cmd = c.editor.Update(msg)
@@ -488,11 +573,11 @@ func (m *Model) trySend() tea.Cmd {
 	switch d.Confirm {
 	case safety.ConfirmYes:
 		c.confirm = confirmYes
-		c.editor.Blur()
+		c.blurEditor()
 		return nil
 	case safety.ConfirmTyped:
 		c.confirm = confirmTyped
-		c.editor.Blur()
+		c.blurEditor()
 		c.confirmInput.SetValue("")
 		return c.confirmInput.Focus()
 	}
@@ -505,7 +590,7 @@ func (m *Model) updateConfirm(msg tea.KeyMsg) tea.Cmd {
 		c.confirm = confirmNone
 		c.confirmInput.Blur()
 		if !c.focusResp {
-			return tea.Batch(c.editor.Focus(), m.setFlash("Cancelled; nothing was sent.", true))
+			return tea.Batch(c.focusEditor(), m.setFlash("Cancelled; nothing was sent.", true))
 		}
 		return m.setFlash("Cancelled; nothing was sent.", true)
 	}
@@ -540,7 +625,7 @@ func (m *Model) updateConfirm(msg tea.KeyMsg) tea.Cmd {
 
 func (m *Model) send() tea.Cmd {
 	c := m.call
-	params, err := client.Compact([]byte(c.editor.Value()))
+	params, err := client.Compact([]byte(c.params()))
 	if err != nil {
 		return m.setFlash("Invalid JSON: "+err.Error(), false)
 	}
@@ -552,7 +637,7 @@ func (m *Model) send() tea.Cmd {
 	c.started = time.Now()
 	c.lastSent = string(params)
 	c.focusResp = true
-	c.editor.Blur()
+	c.blurEditor()
 	req := client.Request{Method: c.qualified, Params: params, More: c.more, Oneway: c.oneway}
 	cmd, cancel := startCall(c.id, m.svcPath, req, m.copts)
 	c.cancel = cancel
@@ -583,13 +668,26 @@ func (m *Model) viewCall() string {
 	}
 	var lines []string
 	lines = append(lines, ansi.Truncate(flags, edW-4, "…"), "")
-	lines = append(lines, strings.Split(c.editor.View(), "\n")...)
+	if c.jsonMode {
+		lines = append(lines, strings.Split(c.editor.View(), "\n")...)
+	} else {
+		body := strings.Split(c.form.view(c.form.width, c.form.height, !c.focusResp), "\n")
+		for len(body) < c.form.height {
+			body = append(body, "")
+		}
+		lines = append(lines, body...)
+	}
 	if c.validErr != nil {
 		lines = append(lines, ansi.Truncate(errStyle.Render("✗ "+sanitize.Line(c.validErr.Error())), edW-4, "…"))
 	} else {
 		lines = append(lines, okStyle.Render("✓ valid parameters"))
 	}
-	if len(c.optional) > 0 {
+	mode := faintStyle.Render("form · ") + brandStyle.Render("ctrl+j") + faintStyle.Render(" edit as JSON")
+	if c.jsonMode {
+		mode = faintStyle.Render("JSON · ") + brandStyle.Render("ctrl+j") + faintStyle.Render(" back to the form")
+	}
+	lines = append(lines, mode)
+	if len(c.optional) > 0 && c.jsonMode {
 		lines = append(lines, mutedStyle.Render("Optional:"))
 		for i, o := range c.optional {
 			if i == 3 && len(c.optional) > 4 {
@@ -639,7 +737,7 @@ func (m *Model) viewConfirm() string {
 	if m.root {
 		b.WriteString(mutedStyle.Render("as       ") + errStyle.Render("root") + "\n")
 	}
-	params := compactOr(c.editor.Value())
+	params := compactOr(c.params())
 	if len(params) > 200 {
 		params = params[:200] + "…"
 	}

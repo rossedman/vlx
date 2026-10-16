@@ -28,6 +28,7 @@ const (
 	KeySafety       = "safety"
 	KeyNoColor      = "no_color"
 	KeyOutput       = "output"
+	KeyPreview      = "preview"
 )
 
 // Config is the resolved configuration.
@@ -41,6 +42,7 @@ type Config struct {
 	Safety       safety.Overrides `mapstructure:"safety" yaml:"safety"`
 	NoColor      bool             `mapstructure:"no_color" yaml:"no_color"`
 	Output       string           `mapstructure:"output" yaml:"-"`
+	Preview      bool             `mapstructure:"preview" yaml:"preview"`
 
 	// File is the config file that was loaded, or "".
 	File string `mapstructure:"-" yaml:"-"`
@@ -59,6 +61,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault(KeySafety+".danger", []string{})
 	v.SetDefault(KeyNoColor, false)
 	v.SetDefault(KeyOutput, "text")
+	v.SetDefault(KeyPreview, true)
 }
 
 // DefaultPath is $XDG_CONFIG_HOME/vlx/config.yaml, or

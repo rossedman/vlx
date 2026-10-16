@@ -30,6 +30,7 @@ vlx config init [flags]
       --config string        config file (default $XDG_CONFIG_HOME/vlx/config.yaml)
       --max-frame-size int   largest message accepted from a service, in bytes (default 16777216)
       --no-color             disable colour (also NO_COLOR=1)
+      --no-preview           in the explorer, connect to a service only when you open it
   -o, --output string        output format: text or json (default "text")
       --search strings       extra directory to search for sockets (repeatable)
       --timeout duration     timeout for connecting and for single replies (default 10s)

@@ -102,8 +102,14 @@ header and a context-sensitive key bar.
   `ROOT` badge.
 - **Services** lists discovered sockets with a status dot: grey not yet
   probed, green answered `GetInfo`, red failed (the error is shown in Detail).
-  Selecting a service connects and introspects it in the background; a spinner
-  shows progress.
+- **Preview.** When the cursor rests on a service for 250 ms, vlx introspects
+  it in the background (only `org.varlink.service.GetInfo` and
+  `GetInterfaceDescription`, which are read-only) and shows its tree in the
+  Interfaces pane without moving focus. Results are cached per socket, so
+  moving back is instant. Sockets the user cannot access are not previewed.
+  `preview: false` (or `--no-preview`) restores connect-on-Enter.
+- **Boilerplate interfaces** (`org.varlink.service`, `io.systemd.service`,
+  `io.systemd`) start collapsed so the service's own API is what you see.
 - **Interfaces** marks members with glyphs *and* letters so meaning never
   depends on colour: `ƒ` method, `⌁` streaming method, `τ` type, `!` error,
   and a safety tag `READ` / `WRITE` / `DANGER`.
@@ -119,6 +125,7 @@ header and a context-sensitive key bar.
 | `↑`/`↓`, `k`/`j` | Move |
 | `←`/`→`, `h`/`l`, `Tab`/`Shift+Tab` | Change pane |
 | `Enter` | Open: connect to service / expand interface / call method |
+| `Ctrl+K`, `:` | Search everything (see [§4.5](#45-search-palette)) |
 | `c` | Call the selected method |
 | `i` | Toggle the raw IDL of the selected interface |
 | `/` | Filter the focused list (`Esc` clears) |
@@ -131,26 +138,48 @@ header and a context-sensitive key bar.
 
 `Enter` or `c` on a method opens the **call screen**:
 
-1. A JSON editor pre-filled with a **skeleton** generated from the input type:
-   required fields get typed placeholders (`""`, `0`, `false`, the first enum
-   value, `[]`, `{}`); optional (`?T`) fields are listed as comments above the
-   editor so the payload stays valid JSON.
-2. **Live validation** against the IDL on every keystroke, reported as a path
-   (`.addresses[2].family: expected int, got string`). Sending is disabled
-   while the parameters are invalid.
-3. Flags shown as toggles: `more` (enabled and forced on for methods that
+1. A **parameter form**: one row per top-level parameter showing its name,
+   IDL type and an input that fits the type —
+   text for `string`, a number field for `int`/`float`, a `‹ choice ›` for
+   `bool` and enums (←/→, space, or type the first letters), and a one-line
+   JSON field for structs, arrays, maps, `object` and `any` (pre-filled with a
+   skeleton). The focused row shows the parameter's doc comment and how to
+   edit it. Optional (`?T`) parameters are omitted until given a value; for
+   choices the first option is `(unset)`. ↑/↓ or Enter move between rows.
+2. **Live validation** against the IDL on every keystroke. Problems appear
+   under the field they belong to, including nested ones
+   (`where`: `.x: expected int`). Sending is disabled while the parameters are
+   invalid.
+3. **Ctrl+J** switches to a raw JSON editor holding the same parameters, and
+   back. JSON the form cannot represent (unknown keys, an empty optional
+   string) keeps you in JSON mode with an explanation. Methods without
+   parameters say so and can be sent straight away.
+4. Flags shown as toggles: `more` (enabled and forced on for methods that
    require it, unavailable for methods that do not support it) and `oneway`.
-4. `Ctrl+S` sends. Non-read methods go through the confirmation flow in
+5. `Ctrl+S` sends. Non-read methods go through the confirmation flow in
    [§6.2](#62-policy).
-5. The **response pane** shows each reply as pretty, colourised JSON with a
+6. The **response pane** shows each reply as pretty, colourised JSON with a
    counter, elapsed time and, for streams, a live tail. Errors show the Varlink
    error name, its parameters, and the IDL doc for that error if the interface
    declares it. `Esc` stops a stream (which closes the connection, as the
    protocol requires).
-6. `y` copies the response; `Ctrl+Y` copies the equivalent `vlx call` and
+7. `y` copies the response; `Ctrl+Y` copies the equivalent `vlx call` and
    `varlinkctl call` commands.
 
-### 4.5 Visual language
+### 4.5 Search palette
+
+`Ctrl+K` or `:` opens a palette that searches every service, interface,
+method, type and error at once. Opening it introspects every accessible
+service in the background (with preview enabled), and results update as they
+arrive. Matching is token-based: every word must match a name, the qualified
+name or the service's short name — best at the start of a word or a CamelCase
+hump, otherwise as a subsequence — so `resolve host` finds
+`io.systemd.Resolve.ResolveHostname`. Methods rank above services, interfaces,
+types and errors; an exact name wins. With an empty query the palette lists
+services, so it doubles as a service switcher. Enter jumps there: it selects
+the service, expands the interface and puts the cursor on the entry.
+
+### 4.6 Visual language
 
 | Token | Use |
 | --- | --- |
@@ -283,8 +312,10 @@ Classification is decided in this order, first match wins:
   plugins.
 - Discovery is read-only: it lists a fixed set of directories one level deep
   (plus configured `search_paths`), does not follow symlinked directories and
-  only reports sockets. Connecting is lazy — listing never sends anything
-  unless `--probe` is given.
+  only reports sockets. `vlx list` never connects unless `--probe` is given.
+  In the explorer, preview and the palette introspect services with the
+  read-only `org.varlink.service` methods only; `preview: false` turns that
+  off so nothing is sent until a service is opened.
 - The config file can enable writes, so vlx refuses to load a config file that
   is group- or world-writable or not owned by the current user or root.
 - vlx never needs and never requests elevated privileges. Running as root is
@@ -320,6 +351,7 @@ allow_writes: false
 timeout: 10s
 max_frame_size: 16777216
 max_replies: 1000
+preview: true
 search_paths: []
 redact: ["*password*", "*secret*", "*privateKey*", "hashedPassword", "privileged", "*token*"]
 safety:

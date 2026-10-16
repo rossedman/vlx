@@ -43,6 +43,7 @@ vlx config path
 | `timeout` | `--timeout` | `VLX_TIMEOUT` | `10s` | Connect and single-reply timeout. |
 | `max_frame_size` | `--max-frame-size` | `VLX_MAX_FRAME_SIZE` | `16777216` | Largest message accepted, in bytes. |
 | `max_replies` | | `VLX_MAX_REPLIES` | `1000` | Stream replies kept in the TUI. |
+| `preview` | `--no-preview` | `VLX_PREVIEW` | `true` | Introspect services as the cursor moves, and for search. |
 | `search_paths` | `--search` | | `[]` | Extra directories to search for sockets. |
 | `redact` | | | see below | Keys whose values are hidden in the TUI. |
 | `safety` | | | empty | Classification overrides. |

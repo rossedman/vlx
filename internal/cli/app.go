@@ -21,6 +21,7 @@ type app struct {
 	cfg        *config.Config
 	configFile string
 	search     []string
+	noPreview  bool
 
 	in     io.Reader
 	out    io.Writer
@@ -60,6 +61,9 @@ func (a *app) loadConfig(file string) error {
 		return usageError(err)
 	}
 	a.cfg = cfg
+	if a.noPreview {
+		cfg.Preview = false
+	}
 	if cfg.NoColor || !a.outIsTTY() {
 		lipgloss.SetColorProfile(termenv.Ascii)
 	}

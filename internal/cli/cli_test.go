@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -30,7 +31,7 @@ func run(t *testing.T, stdin string, args ...string) result {
 // terminal. Discovery only searches --search directories.
 func runApp(t *testing.T, stdin string, tty bool, args ...string) result {
 	t.Helper()
-	var out, errOut bytes.Buffer
+	var out, errOut syncBuffer
 	v := viper.New()
 	config.SetDefaults(v)
 	a := &app{v: v, in: strings.NewReader(stdin), out: &out, errOut: &errOut, dirs: []string{}}
@@ -44,6 +45,32 @@ func runApp(t *testing.T, stdin string, tty bool, args ...string) result {
 		errOut.WriteString("vlx: " + err.Error() + "\n")
 	}
 	return result{out.String(), errOut.String(), ExitCode(err)}
+}
+
+// syncBuffer is a bytes.Buffer safe for concurrent writes. The TUI's
+// renderer and event loop both write to the output, which is safe for a
+// terminal but not for a plain buffer.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) WriteString(str string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.WriteString(str)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
 }
 
 func startDemo(t *testing.T) string {
