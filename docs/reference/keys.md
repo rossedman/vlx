@@ -5,71 +5,76 @@ description: Every key binding in the vlx explorer.
 # Keys
 
 The bottom line of the explorer always shows the keys that work right now;
-++"?"++ shows this list.
+++"?"++ (or ++f1++ anywhere) shows this list.
 
-## Browse
+## Anywhere
 
 | Key | Action |
 | --- | --- |
-| ++up++ / ++k++ | up |
-| ++down++ / ++j++ | down |
+| ++esc++ | go up a level (or stop a running stream) |
+| ++f1++ | help |
+| ++ctrl+k++ | go to the command line |
+| ++ctrl+c++ | quit |
+
+## Lists (services, a service)
+
+| Key | Action |
+| --- | --- |
+| ++up++ / ++down++ | move |
 | ++page-up++ / ++page-down++ | page up / down |
-| ++g++ / ++shift+g++ | top / bottom |
-| ++tab++ / ++shift+tab++ | next / previous pane |
-| ++left++ ++right++ / ++h++ ++l++ | previous / next pane |
-| ++ctrl+k++ / ++":"++ | search everything |
-| ++enter++ | open service · expand interface · call method |
+| ++home++ / ++end++ | top / bottom |
+| ++enter++ / ++right++ | open |
 | ++space++ | expand or collapse an interface |
-| ++c++ | call the selected method |
-| ++i++ | toggle the raw IDL view |
-| ++"/"++ | filter the focused list |
-| ++y++ | copy the `vlx call` command (or the name) |
-| ++r++ | refresh sockets and the open service |
-| ++esc++ | back: close IDL, leave filter, previous pane |
+| ++esc++ / ++left++ | up a level |
+| *a letter* | start typing on the command line |
+| ++"/"++ / ++":"++ | go to the command line |
+| ++ctrl+d++ | documentation and IDL of the selection |
+| ++ctrl+y++ | copy a `vlx call` command, a name or a socket path |
+| ++ctrl+r++ | rediscover sockets and re-read the service |
 | ++"?"++ | help |
-| ++q++ / ++ctrl+c++ | quit |
+| ++q++ | quit |
 
-## Search
-
-| Key | Action |
-| --- | --- |
-| *type* | search services, interfaces, methods, types and errors |
-| ++up++ ++down++ / ++tab++ | choose a result |
-| ++enter++ | jump to it |
-| ++esc++ / ++ctrl+k++ | close |
-
-## Filter
+## Command line
 
 | Key | Action |
 | --- | --- |
-| *type* | narrow the list as you type |
-| ++enter++ | keep the filter and return to the list |
-| ++esc++ | clear the filter |
+| *type* | search, or write a call: `SERVICE [METHOD] [NAME=VALUE …]` |
+| ++up++ ++down++ | pick a match · earlier calls |
+| ++tab++ | complete the selected match |
+| ++enter++ | go to the match, or run the call |
+| ++esc++ | leave the command line |
 
-## Call
+## Method page
 
 | Key | Action |
 | --- | --- |
 | ++ctrl+s++ | validate and send |
-| ++tab++ | switch between parameters and response |
-| ++ctrl+j++ | switch between the form and JSON |
-| ++up++ ++down++ / ++enter++ | (form) previous / next parameter |
+| ++tab++ / ++shift+tab++ | form → command line → result, and back |
+| ++up++ ++down++ | (form) previous / next parameter |
 | ++left++ ++right++ / ++space++ | (form) change a choice |
 | ++backspace++ | (form) unset an optional choice |
+| ++ctrl+j++ | switch between the form and JSON |
 | ++ctrl+t++ | toggle `more` (streaming) |
 | ++ctrl+o++ | toggle `oneway` |
-| ++ctrl+r++ | reset parameters to the skeleton |
+| ++ctrl+r++ | reset the parameters |
 | ++ctrl+y++ | copy the `vlx call` and `varlinkctl call` commands |
-| ++y++ | copy the replies as JSON (response focused) |
-| ++shift+r++ | reveal redacted values (response focused) |
-| ++up++ ++down++ ++g++ ++shift+g++ | scroll the response (response focused) |
-| ++esc++ | stop a stream · back to the tree |
-| ++f1++ | help |
-| ++ctrl+c++ | quit |
+| ++ctrl+d++ | the method's full documentation |
+| ++page-up++ ++page-down++ | scroll the result |
+| ++y++ | (result) copy the replies as JSON |
+| ++shift+r++ | (result) reveal redacted values |
+| ++esc++ | stop a stream · back to the form · up a level |
 
-Text fields and the JSON editor also support the usual editing keys: ++ctrl+a++ / ++ctrl+e++
-for line start and end, ++ctrl+k++ / ++ctrl+u++ to delete after or before
+Text fields and the JSON editor also support the usual editing keys:
+++ctrl+a++ / ++ctrl+e++ for line start and end, ++ctrl+u++ to delete before
 the cursor, ++alt+left++ / ++alt+right++ to move by word.
+
+## Documentation and IDL
+
+| Key | Action |
+| --- | --- |
+| ++up++ ++down++ ++page-up++ ++page-down++ | scroll |
+| ++ctrl+d++ | switch between docs and IDL |
+| ++esc++ | back |
 
 ## Confirmations
 

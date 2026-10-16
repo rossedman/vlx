@@ -34,12 +34,12 @@ Run `vlx`. It lists the Varlink sockets under `/run/systemd`, `/run/varlink/regi
 <div class="vlx-card" markdown>
 :material-file-tree:
 ### Browse
-Interfaces appear as you move. ++ctrl+k++ searches every method, type and error on the machine at once.
+Services are grouped and described in plain language. Start typing to jump to any method, type or error on the machine.
 </div>
 <div class="vlx-card" markdown>
 :material-code-json:
 ### Call
-A form built from the schema — pickers for enums, inline docs, checks as you type. Replies stream in live.
+Type `resolve ResolveHostname name=example.com`, or fill in a form built from the schema. The two stay in sync; replies stream in live.
 </div>
 <div class="vlx-card" markdown>
 :material-shield-check:
@@ -58,7 +58,7 @@ Everything the TUI does has a command: `vlx call … -o json`, stable exit codes
 </div>
 </div>
 
-![The vlx explorer browsing the demo service](assets/screens/browse.png){ .vlx-shot }
+![The vlx explorer browsing the demo service](assets/screens/method.png){ .vlx-shot }
 
 ## How it works
 

@@ -34,7 +34,7 @@ vlx decides the class in this order, and the first rule that matches wins:
 4. **Otherwise WRITE.** Unknown is never assumed safe.
 
 A **oneway** call is always at least WRITE, since its effect cannot be seen.
-The Detail pane shows the class and the rule that produced it.
+A method's documentation page (++ctrl+d++) shows the class and the rule that produced it.
 
 ## The policy
 

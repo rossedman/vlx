@@ -6,8 +6,24 @@ All notable changes to vlx are recorded here. The format follows
 
 ## Unreleased
 
+### Changed
+
+- The explorer is now a drill-down with a command line: one page at a time
+  (services → a service → a method) and a line along the bottom that is
+  always there. Type to jump anywhere, or type a whole call —
+  `resolve ResolveHostname name=example.com` — and press Enter. On a method
+  page the parameter form and the command line show the same call and stay
+  in sync. The three-pane layout and the Ctrl+K palette are gone; Ctrl+K now
+  focuses the command line.
+- Services on the home page are grouped (System, Network, Users & login, …)
+  and described in plain language; recent calls are listed first.
+- A method page lists earlier calls of that method, and keeps its parameters
+  and result while vlx runs.
+
 ### Added
 
+- `vlx call SERVICE METHOD NAME=VALUE...`: parameters as words, converted
+  using the IDL, as an alternative to a JSON object.
 - Parameter form on the call screen: one row per parameter with a fitting
   input (text, number, enum and bool pickers, JSON for complex types),
   inline docs and per-field errors. Ctrl+J switches to raw JSON and back.

@@ -53,15 +53,14 @@ The demo service runs anywhere, so start there:
 vlx demo
 ```
 
-vlx starts a small sample service and opens the explorer on it. You will see
-three panes: **Services**, **Interfaces** and **Detail**.
+vlx starts a small sample service and opens the explorer on it. The
+explorer shows one page at a time, with a command line along the bottom.
 
-![vlx demo](../assets/screens/browse.png){ .vlx-shot }
+![vlx demo](../assets/screens/service.png){ .vlx-shot }
 
-Move with ++up++ / ++down++ (or ++j++ / ++k++), and switch panes with
-++tab++. The Detail pane always describes what is selected: the method's
-documentation, its parameters and return values, the types it uses and its
-safety class.
+Move with ++up++ / ++down++, open things with ++enter++, and go back up with
+++esc++. Each method shows its safety class and the first line of its
+documentation.
 
 !!! tip "Lost? Press ++"?"++"
     The bottom line always shows the keys that work right now, and ++"?"++
@@ -69,25 +68,29 @@ safety class.
 
 ## <span class="vlx-step">3</span> Call a method
 
-1. Select **GetGreeting** under `io.vlx.demo.Greeter` and press ++enter++.
-2. A form opens with one row per parameter. Type a name, press ++down++, and
-   pick a **language** with ++left++ / ++right++.
+1. Select **GetGreeting** and press ++enter++.
+2. Type a name, press ++down++, and pick a **language** with ++left++ /
+   ++right++. The command line at the bottom spells out the same call.
 3. Press ++ctrl+s++ to send.
 
-![The parameter form](../assets/screens/form.png){ .vlx-shot }
+![A call and its reply](../assets/screens/method.png){ .vlx-shot }
 
-![A call and its reply](../assets/screens/call.png){ .vlx-shot }
+Or skip the clicking: type the whole call and press ++enter++.
 
-The reply appears on the right. Try a few more:
+```text
+demo GetGreeting name=Ada language=german
+```
 
-| Method | What it shows |
+Try a few more:
+
+| Type this | What it shows |
 | --- | --- |
-| `WatchCountdown` | a **stream**: one reply per tick, live. ++esc++ stops it. |
-| `GetItem` with `{"id": 42}` | a **typed error**, with its documentation from the IDL |
-| `GetSupplier` | a secret field shown as `«redacted»` (++shift+r++ reveals it) |
-| `SetDefaultLanguage` | a **WRITE** method, which vlx refuses to send in read-only mode |
+| `demo WatchCountdown from=5` | a **stream**: one reply per tick, live. ++esc++ stops it. |
+| `demo GetItem id=42` | a **typed error**, with its documentation from the IDL |
+| `demo GetSupplier id=1` | a secret field shown as `«redacted»` (++shift+r++ reveals it) |
+| `demo SetDefaultLanguage language=german` | a **WRITE** method, which vlx refuses to send in read-only mode |
 
-Press ++esc++ to go back to the tree, and ++q++ to quit.
+Press ++esc++ to go up a level, and ++q++ on a list to quit.
 
 ## <span class="vlx-step">4</span> Explore your system
 
@@ -97,9 +100,9 @@ On a Linux machine with systemd v257 or newer, just run:
 vlx
 ```
 
-Move through the services — each one's interfaces appear as you go — and
-press ++enter++ to browse one. Looking for something specific? Press
-++ctrl+k++ and type, for example, `resolve host`. Many system services
+The services are grouped and described in plain language; press ++enter++ to
+browse one. Looking for something specific? Just type, for example,
+`resolve host` — or the whole call: `resolve ResolveHostname name=example.com`. Many system services
 only talk to root, so if a service shows `⊘` or *permission denied*:
 
 ```sh
@@ -111,19 +114,20 @@ how to enable writes when you mean to.
 
 ## <span class="vlx-step">5</span> Script it
 
-Everything you did in the TUI has a command. Press ++ctrl+y++ on the call
-screen to copy it, or write it yourself:
+Everything you did in the TUI has a command — the same line you type in the
+explorer works after `vlx call`. Press ++ctrl+y++ on a method page to copy
+it, or write it yourself:
 
 ```sh
 vlx list                                        # what is there?
 vlx describe hostname                           # print the IDL
 vlx call hostname io.systemd.Hostname.Describe  # call a method
-vlx call resolve ResolveHostname '{"name":"example.com"}' -o json | jq .
+vlx call resolve ResolveHostname name=example.com -o json | jq .
 ```
 
 ## Next steps
 
-- [The explorer](../guides/explorer.md) — every pane and key.
+- [The explorer](../guides/explorer.md) — pages, the command line and keys.
 - [Calling methods](../guides/calling.md) — parameters, streams and errors.
 - [Safety](../guides/safety.md) — what vlx will and will not send.
 - [systemd recipes](../guides/systemd.md) — useful calls for real services.

@@ -13,24 +13,14 @@ var (
 			Background(render.BrandDeep).
 			Bold(true).
 			Padding(0, 1)
-	headerPathStyle = lipgloss.NewStyle().Foreground(render.Text).Bold(true)
-	mutedStyle      = lipgloss.NewStyle().Foreground(render.Muted)
-	faintStyle      = lipgloss.NewStyle().Foreground(render.Faint)
-	textStyle       = lipgloss.NewStyle().Foreground(render.Text)
-	boldStyle       = lipgloss.NewStyle().Foreground(render.Text).Bold(true)
-	brandStyle      = lipgloss.NewStyle().Foreground(render.Brand).Bold(true)
-	okStyle         = lipgloss.NewStyle().Foreground(render.Green)
-	warnStyle       = lipgloss.NewStyle().Foreground(render.Amber)
-	errStyle        = lipgloss.NewStyle().Foreground(render.Red)
-
-	paneStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(render.Faint).
-			Padding(0, 1)
-	paneFocusedStyle = paneStyle.BorderForeground(render.Brand)
-
-	paneTitleStyle        = lipgloss.NewStyle().Foreground(render.Muted).Bold(true)
-	paneTitleFocusedStyle = lipgloss.NewStyle().Foreground(render.Brand).Bold(true)
+	mutedStyle = lipgloss.NewStyle().Foreground(render.Muted)
+	faintStyle = lipgloss.NewStyle().Foreground(render.Faint)
+	textStyle  = lipgloss.NewStyle().Foreground(render.Text)
+	boldStyle  = lipgloss.NewStyle().Foreground(render.Text).Bold(true)
+	brandStyle = lipgloss.NewStyle().Foreground(render.Brand).Bold(true)
+	okStyle    = lipgloss.NewStyle().Foreground(render.Green)
+	warnStyle  = lipgloss.NewStyle().Foreground(render.Amber)
+	errStyle   = lipgloss.NewStyle().Foreground(render.Red)
 
 	selectedStyle = lipgloss.NewStyle().
 			Foreground(render.Text).
