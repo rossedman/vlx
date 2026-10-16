@@ -86,24 +86,149 @@
 .md-typeset .md-button--primary { background: var(--vlx-violet); border-color: var(--vlx-violet); color: #fff; }
 .md-typeset .md-button--primary:hover { background: var(--vlx-violet-soft); border-color: var(--vlx-violet-soft); color: #0f1117; transform: translateY(-1px); box-shadow: 0 6px 20px #8b5cf650; }
 
-/* Home hero */
-.vlx-hero { margin: 0 0 2rem; border-radius: .9rem; overflow: hidden; background: var(--vlx-ink); border: 1px solid #ffffff12; box-shadow: 0 18px 50px -24px #00000080; }
-.vlx-hero img { display: block; width: 100%; height: auto; }
-.vlx-hero__body { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; justify-content: space-between; padding: .4rem 2rem 1.8rem; color: #f4f1f7; }
-.md-typeset .vlx-hero__lead { flex: 1 1 22rem; margin: 0; color: #b9b4c4; font-size: .95rem; line-height: 1.6; }
-.md-typeset .vlx-hero__lead strong { color: #fff; }
-.md-typeset .vlx-hero__actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: 0; }
-.md-typeset .vlx-hero .md-button:not(.md-button--primary) { color: #f4f1f7; border-color: #ffffff40; }
-.vlx-hero__install { flex: 1 1 100%; font-family: var(--md-code-font-family); font-size: .75rem; color: #d9d5e0; background: #ffffff0a; border: 1px solid #ffffff1a; border-radius: .5rem; padding: .55rem .9rem; }
-.vlx-hero__install::before { content: "$ "; color: var(--vlx-violet-soft); font-weight: 700; }
+/* ---------------------------------------------------------------- Home */
+/* The home page hides its title, edit button and the default h1 spacing. */
+.md-content:has(.vlx-home) .md-content__button { display: none; }
+.md-main:has(.vlx-home) { overflow-x: clip; } /* the hero glow bleeds past the grid */
+.md-main:has(.vlx-home) .md-content__inner { margin-top: 0; padding-top: 0; }
+.md-typeset .vlx-home .md-button:not(.md-button--primary) { color: var(--vlx-strong); border-color: var(--vlx-card-border); }
+.md-typeset .vlx-home .md-button:not(.md-button--primary):hover { border-color: var(--md-accent-fg-color); color: var(--md-accent-fg-color); }
 
-/* Feature cards */
-.md-typeset .vlx-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .9rem; margin: 1.2rem 0 2rem; }
-.md-typeset .vlx-card { background: var(--vlx-card-bg); border: 1px solid var(--vlx-card-border); border-radius: .7rem; padding: 1rem 1.1rem; transition: border-color 150ms, transform 150ms; }
-.md-typeset .vlx-card:hover { border-color: var(--vlx-violet-soft); transform: translateY(-2px); }
-.md-typeset .vlx-card h3 { margin: .2rem 0 .4rem; font-size: .9rem; }
-.md-typeset .vlx-card p { margin: 0; font-size: .74rem; color: var(--md-default-fg-color--light); }
-.md-typeset .vlx-card .twemoji { color: var(--vlx-violet-soft); }
+[data-md-color-scheme="default"] { --vlx-glow: #8b5cf626; --vlx-glow-2: #22d3ee1f; --vlx-muted: #5b5566; --vlx-strong: #16121d; }
+[data-md-color-scheme="slate"]   { --vlx-glow: #8b5cf640; --vlx-glow-2: #22d3ee26; --vlx-muted: #a39db0; --vlx-strong: #ffffff; }
+
+.vlx-home section { margin: 0 0 4.5rem; }
+.md-typeset .vlx-eyebrow, .md-typeset .vlx-section__eyebrow {
+  margin: 0 0 .6rem; font: 700 .62rem/1 var(--md-code-font-family);
+  letter-spacing: .14em; text-transform: uppercase; color: var(--md-accent-fg-color);
+}
+.md-typeset .vlx-section__title { margin: 0 0 .7rem; font-size: 1.45rem; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; color: var(--vlx-strong); }
+.md-typeset .vlx-section__lead { margin: 0 0 1.2rem; max-width: 38rem; font-size: .86rem; line-height: 1.65; color: var(--vlx-muted); }
+
+/* Hero: text and a real screenshot, on a soft violet and cyan glow. */
+.vlx-hero {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.2rem;
+  align-items: center; padding: 3rem 0 1rem;
+}
+.vlx-hero::before {
+  content: ""; position: absolute; inset: -2rem -40vw 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38rem 22rem at 78% 40%, var(--vlx-glow), transparent 70%),
+    radial-gradient(28rem 18rem at 92% 85%, var(--vlx-glow-2), transparent 70%);
+}
+@media screen and (min-width: 60em) {
+  .vlx-hero { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 2.6rem; padding-top: 3.6rem; }
+}
+.md-typeset .vlx-hero__title {
+  margin: 0 0 1rem; font-size: 2.15rem; line-height: 1.08; font-weight: 800;
+  letter-spacing: -.035em; color: var(--vlx-strong);
+}
+.md-typeset .vlx-hero__title span {
+  background: linear-gradient(90deg, var(--vlx-violet), var(--vlx-cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+@media screen and (min-width: 76em) { .md-typeset .vlx-hero__title { font-size: 2.5rem; } }
+.md-typeset .vlx-hero__lead { margin: 0 0 1.4rem; font-size: .9rem; line-height: 1.65; color: var(--vlx-muted); max-width: 32rem; }
+.md-typeset .vlx-hero__lead strong { color: var(--vlx-strong); }
+.md-typeset .vlx-hero__actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: 0 0 1.4rem; }
+.md-typeset .vlx-hero__note { margin: .7rem 0 0; font-size: .68rem; color: var(--vlx-muted); }
+.md-typeset .vlx-hero__note code { font-size: .95em; }
+.vlx-hero__shot img {
+  display: block; width: 100%; height: auto; border-radius: .9rem;
+  box-shadow: 0 30px 80px -30px #0b061acc, 0 0 0 1px #ffffff10;
+}
+
+/* The install commands, as a small terminal. */
+.md-typeset .vlx-install {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .3rem .6rem; max-width: 32rem;
+  padding: .75rem 1rem; border-radius: .6rem; background: #0f1117; border: 1px solid #ffffff1a;
+  font: .72rem/1.5 var(--md-code-font-family); color: #e3dfe9;
+}
+.md-typeset .vlx-install code { padding: 0; background: none; color: inherit; font-size: inherit; white-space: pre; overflow-x: auto; scrollbar-width: none; }
+.md-typeset .vlx-install__prompt { color: var(--vlx-violet-soft); font-weight: 700; user-select: none; }
+
+/* The annotated command line. */
+.md-typeset .vlx-grammar {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: .5rem .7rem;
+  padding: 1.2rem 1.4rem 1rem; margin: 0 0 1.4rem; border-radius: .8rem;
+  background: #0f1117; border: 1px solid #ffffff14; box-shadow: 0 18px 50px -30px #000000a0;
+  font-family: var(--md-code-font-family);
+}
+.md-typeset .vlx-grammar__prompt, .md-typeset .vlx-grammar__enter { padding-top: .1rem; font-size: 1rem; font-weight: 700; color: var(--vlx-violet-soft); }
+.md-typeset .vlx-grammar__enter { margin-left: auto; color: #6b6577; }
+.md-typeset .vlx-grammar__part { display: flex; flex-direction: column; gap: .35rem; }
+.md-typeset .vlx-grammar__part code {
+  padding: .1rem 0 .35rem; background: none; font-size: 1rem; font-weight: 600; color: #f4f1f7;
+  border-bottom: 2px solid currentColor; border-radius: 0;
+}
+@media screen and (max-width: 44.9em) {
+  .md-typeset .vlx-grammar { padding: 1rem 1.1rem .9rem; gap: .5rem .6rem; }
+  .md-typeset .vlx-grammar__part code { font-size: .82rem; }
+  .md-typeset .vlx-grammar__enter { display: none; }
+}
+.md-typeset .vlx-grammar__part small { font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: #8a8496; }
+.md-typeset .vlx-grammar__part--svc code { color: #c4b5fd; }
+.md-typeset .vlx-grammar__part--method code { color: #f4f1f7; }
+.md-typeset .vlx-grammar__part--arg code { color: var(--vlx-cyan); }
+.md-typeset .vlx-line ul.vlx-line__notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .8rem 1.6rem; margin: 0; padding: 0; list-style: none; }
+.md-typeset .vlx-line ul.vlx-line__notes li { margin: 0; padding-left: .9rem; border-left: 2px solid var(--vlx-card-border); font-size: .76rem; line-height: 1.6; color: var(--vlx-muted); }
+.md-typeset .vlx-line__notes strong { color: var(--vlx-strong); }
+
+/* The tour: tabs of screenshots. */
+.md-typeset .vlx-tour .tabbed-labels { justify-content: center; }
+.md-typeset .vlx-tour .tabbed-labels > label { font-size: .78rem; padding: .9em 1.2em .7em; }
+.md-typeset .vlx-tour .tabbed-block > p:last-child { max-width: 38rem; margin: 1rem auto 0; text-align: center; font-size: .78rem; color: var(--vlx-muted); }
+
+/* Features: a 3 × 2 grid with hairlines between cells. */
+.md-typeset .vlx-features {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1px;
+  background: var(--vlx-card-border); border: 1px solid var(--vlx-card-border); border-radius: .9rem; overflow: hidden;
+}
+@media screen and (min-width: 60em) { .md-typeset .vlx-features { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.md-typeset .vlx-feature { padding: 1.4rem 1.4rem 1.5rem; background: var(--vlx-card-bg); }
+.md-typeset .vlx-feature h3 { margin: .7rem 0 .4rem; font-size: .86rem; font-weight: 700; color: var(--vlx-strong); }
+.md-typeset .vlx-feature p { margin: 0; font-size: .74rem; line-height: 1.6; color: var(--vlx-muted); }
+.md-typeset .vlx-feature__icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem;
+  border-radius: .55rem; background: var(--md-accent-fg-color--transparent); color: var(--md-accent-fg-color);
+}
+.md-typeset .vlx-feature__icon svg { width: 1.1rem; height: 1.1rem; }
+
+/* Safety: the three classes as tiles. */
+.md-typeset .vlx-safety, .md-typeset .vlx-script { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem 2.8rem; align-items: center; }
+@media screen and (min-width: 60em) {
+  .md-typeset .vlx-safety { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+  .md-typeset .vlx-script { grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); }
+}
+.md-typeset .vlx-safety__classes { display: grid; gap: .7rem; }
+.md-typeset .vlx-class {
+  display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: 1rem; align-items: center;
+  padding: .9rem 1.1rem; border-radius: .7rem; background: var(--vlx-card-bg);
+  border: 1px solid var(--vlx-card-border); border-left: 3px solid var(--vlx-c);
+}
+.md-typeset .vlx-class p { margin: 0; font-size: .74rem; line-height: 1.55; color: var(--vlx-muted); }
+.md-typeset .vlx-class p strong { color: var(--vlx-strong); }
+.md-typeset .vlx-class__tag { justify-self: start; padding: .15rem .5rem; border-radius: .3rem; font: 700 .68rem/1.4 var(--md-code-font-family); color: #0f1117; background: var(--vlx-c); }
+.md-typeset .vlx-class--read { --vlx-c: var(--vlx-green); }
+.md-typeset .vlx-class--write { --vlx-c: var(--vlx-amber); }
+.md-typeset .vlx-class--danger { --vlx-c: var(--vlx-red); }
+
+/* Script it: the code block sits on the terminal colours in both themes. */
+.md-typeset .vlx-script__code .highlight { margin: 0; }
+.md-typeset .vlx-script__code pre > code { font-size: .72rem; line-height: 1.7; padding: 1.1rem 1.3rem; }
+
+.md-typeset .vlx-how .vlx-diagram { margin: .4rem 0 1.2rem; }
+.md-typeset .vlx-how > p:last-child { max-width: 44rem; font-size: .78rem; color: var(--vlx-muted); }
+
+/* Closing call to action. */
+.md-typeset .vlx-cta {
+  position: relative; overflow: hidden; padding: 2.6rem 2rem; text-align: center; border-radius: 1rem;
+  background: radial-gradient(30rem 14rem at 50% 0%, #8b5cf640, transparent 75%), #0f1117; border: 1px solid #ffffff14;
+}
+.md-typeset .vlx-cta__title { margin: 0 0 .5rem; font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em; color: #fff; }
+.md-typeset .vlx-cta__lead { margin: 0 auto 1.4rem; max-width: 30rem; font-size: .82rem; color: #b9b4c4; }
+.md-typeset .vlx-cta .vlx-hero__actions { justify-content: center; margin: 0; }
+.md-typeset .vlx-cta .md-button:not(.md-button--primary) { color: #f4f1f7; border-color: #ffffff40; }
 
 /* Safety classes */
 .vlx-read { color: var(--vlx-green); font-weight: 700; font-family: var(--md-code-font-family); }

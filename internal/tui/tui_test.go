@@ -583,3 +583,49 @@ func TestEscapeSequencesAreStripped(t *testing.T) {
 		}
 	}
 }
+
+// TestHeroScreenshot is the compact method page used on the docs home
+// page: a call with earlier calls under it, at a typical terminal size.
+func TestHeroScreenshot(t *testing.T) {
+	h, _ := newHarness(t, false)
+	h.send(tea.WindowSizeMsg{Width: 104, Height: 30})
+	h.line("demo GetGreeting name=Grace")
+	h.line("demo GetGreeting name=Ada language=german")
+	h.line("demo GetGreeting name=Ada language=japanese")
+	h.keys("esc")
+	h.contains("EARLIER ON THIS PAGE", "language=german")
+	checkFits(t, h.m.View(), 104, 30)
+	h.screenshot("hero")
+}
+
+// TestTourScreenshots are the compact screenshots on the docs home page.
+// The home page uses socket names a systemd machine has, with preview off
+// so that it shows only what vlx knows without asking: each socket's group
+// and description from the catalog.
+func TestTourScreenshots(t *testing.T) {
+	const w, ht = 112, 30
+	h, _ := newBrowseHarness(t, false,
+		"io.systemd.Hostname", "io.systemd.Manager", "io.systemd.Resolve", "io.systemd.Resolve.Monitor",
+		"io.systemd.Network", "io.systemd.Multiplexer", "io.systemd.Login", "io.systemd.Machine",
+		"io.systemd.MachineImage", "io.systemd.Credentials", "io.systemd.Udev", "io.vlx.demo")
+	h.send(tea.WindowSizeMsg{Width: w, Height: ht})
+	h.contains("SYSTEM", "NETWORK", "USERS & LOGIN", "DNS lookups and resolver settings")
+	checkFits(t, h.m.View(), w, ht)
+	h.screenshot("tour-home")
+
+	h, _ = newHarness(t, false)
+	h.send(tea.WindowSizeMsg{Width: w, Height: ht})
+	h.keys("down")
+	checkFits(t, h.m.View(), w, ht)
+	h.screenshot("tour-service")
+	h.line("demo GetItem id=2")
+	h.keys("esc")
+	h.contains("Unix socket (assorted)")
+	checkFits(t, h.m.View(), w, ht)
+	h.screenshot("tour-method")
+	h.keys("esc", "esc")
+	h.typ("item")
+	h.contains("matches for item")
+	checkFits(t, h.m.View(), w, ht)
+	h.screenshot("tour-search")
+}

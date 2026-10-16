@@ -4,7 +4,7 @@ description: Install vlx and make your first Varlink call in two minutes, with o
 
 # QuickStart
 
-![From zero to your first call in four keys](../assets/quickstart.png){ .vlx-diagram }
+![From zero to your first call: launch, open a service, open a method, send](../assets/quickstart.png){ .vlx-diagram }
 
 ## <span class="vlx-step">1</span> Install
 
