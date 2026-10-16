@@ -34,7 +34,7 @@ jobs:
       - name: Unit and end-to-end tests (race)
         run: go test -race -count=1 -coverpkg=./... -coverprofile=coverage.out ./...
       - name: Coverage is at least 90%
-        run: ./hack/coverage.sh coverage.out 90
+        run: ./hack/check-coverage.sh coverage.out 90
       - name: Smoke-test the binary
         run: |
           go build -o vlx ./cmd/vlx
