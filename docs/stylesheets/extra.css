@@ -1,0 +1,115 @@
+/* vlx brand theme for mkdocs-material.
+ *
+ * Palette: violet #8B5CF6 (brand), cyan #22D3EE, green #30D475 (READ),
+ * amber #F5B83D (WRITE), red #F2545B (DANGER), ink #0F1117.
+ */
+:root {
+  --vlx-violet: #8b5cf6;
+  --vlx-violet-soft: #a78bfa;
+  --vlx-violet-deep: #6d28d9;
+  --vlx-cyan: #22d3ee;
+  --vlx-green: #30d475;
+  --vlx-amber: #f5b83d;
+  --vlx-red: #f2545b;
+  --vlx-dark: #1a1622;
+  --vlx-ink: #0f1117;
+  --vlx-wire: linear-gradient(90deg, #c4b5fd, #8b5cf6 55%, #22d3ee);
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #1a1622;
+  --md-primary-fg-color--light: #2b2437;
+  --md-primary-fg-color--dark: #120f18;
+  --md-primary-bg-color: #f4f1f7;
+  --md-accent-fg-color: #6d28d9;
+  --md-accent-fg-color--transparent: #8b5cf61a;
+  --md-typeset-a-color: #6d28d9;
+  --md-code-bg-color: #f6f4f9;
+  --md-code-hl-color: #8b5cf633;
+  --vlx-card-bg: #ffffff;
+  --vlx-card-border: #e6e1ec;
+  --vlx-surface: #f8f6fb;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 265;
+  --md-primary-fg-color: #1a1622;
+  --md-primary-fg-color--light: #2b2437;
+  --md-primary-fg-color--dark: #120f18;
+  --md-primary-bg-color: #f4f1f7;
+  --md-accent-fg-color: #a78bfa;
+  --md-accent-fg-color--transparent: #a78bfa1f;
+  --md-default-bg-color: #0f1117;
+  --md-default-fg-color--light: #b9b4c4;
+  --md-typeset-color: #e3dfe9;
+  --md-typeset-a-color: #a78bfa;
+  --md-code-bg-color: #171a23;
+  --md-code-fg-color: #e3dfe9;
+  --md-code-hl-color: #8b5cf629;
+  --md-footer-bg-color: #0b0c11;
+  --md-footer-bg-color--dark: #08090d;
+  --vlx-card-bg: #151821;
+  --vlx-card-border: #262a36;
+  --vlx-surface: #13161e;
+}
+
+/* Header with a gradient wire underneath */
+.md-header { background-color: var(--vlx-dark); box-shadow: none; }
+.md-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--vlx-wire); opacity: .9;
+}
+.md-tabs { background-color: var(--vlx-dark); }
+.md-tabs__link--active, .md-tabs__link:hover { color: var(--vlx-violet-soft); opacity: 1; }
+.md-header__button.md-logo img, .md-nav__button.md-logo img {
+  filter: invert(96%) sepia(4%) saturate(400%) hue-rotate(220deg) brightness(102%);
+  height: 1.6rem; width: auto;
+}
+.md-header__topic:first-child { font-family: var(--md-code-font-family); font-weight: 700; }
+
+/* Typography */
+.md-typeset h1 { font-weight: 700; letter-spacing: -.02em; }
+.md-typeset h2 { font-weight: 650; letter-spacing: -.01em; }
+.md-typeset code { border-radius: .25rem; }
+.md-typeset pre > code, .md-typeset .highlight { border-radius: .45rem; }
+[data-md-color-scheme="slate"] .md-typeset pre > code { border: 1px solid #ffffff0d; }
+.md-typeset table:not([class]) { border-radius: .45rem; border: 1px solid var(--vlx-card-border); font-size: .72rem; }
+.md-typeset table:not([class]) th { background: var(--vlx-surface); font-weight: 650; }
+.md-typeset kbd { font-size: .72em; }
+
+/* Images: rounded, with depth */
+.md-typeset img.vlx-shot { border-radius: .8rem; box-shadow: 0 18px 50px -24px #00000090; }
+.md-typeset img.vlx-diagram { border-radius: .8rem; border: 1px solid #ffffff14; }
+
+/* Buttons */
+.md-typeset .md-button { border-radius: 999px; font-weight: 600; padding: .55em 1.5em; transition: transform 120ms ease, box-shadow 120ms ease; }
+.md-typeset .md-button--primary { background: var(--vlx-violet); border-color: var(--vlx-violet); color: #fff; }
+.md-typeset .md-button--primary:hover { background: var(--vlx-violet-soft); border-color: var(--vlx-violet-soft); color: #0f1117; transform: translateY(-1px); box-shadow: 0 6px 20px #8b5cf650; }
+
+/* Home hero */
+.vlx-hero { margin: 0 0 2rem; border-radius: .9rem; overflow: hidden; background: var(--vlx-ink); border: 1px solid #ffffff12; box-shadow: 0 18px 50px -24px #00000080; }
+.vlx-hero img { display: block; width: 100%; height: auto; }
+.vlx-hero__body { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; justify-content: space-between; padding: .4rem 2rem 1.8rem; color: #f4f1f7; }
+.md-typeset .vlx-hero__lead { flex: 1 1 22rem; margin: 0; color: #b9b4c4; font-size: .95rem; line-height: 1.6; }
+.md-typeset .vlx-hero__lead strong { color: #fff; }
+.md-typeset .vlx-hero__actions { display: flex; gap: .6rem; flex-wrap: wrap; margin: 0; }
+.md-typeset .vlx-hero .md-button:not(.md-button--primary) { color: #f4f1f7; border-color: #ffffff40; }
+.vlx-hero__install { flex: 1 1 100%; font-family: var(--md-code-font-family); font-size: .75rem; color: #d9d5e0; background: #ffffff0a; border: 1px solid #ffffff1a; border-radius: .5rem; padding: .55rem .9rem; }
+.vlx-hero__install::before { content: "$ "; color: var(--vlx-violet-soft); font-weight: 700; }
+
+/* Feature cards */
+.md-typeset .vlx-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .9rem; margin: 1.2rem 0 2rem; }
+.md-typeset .vlx-card { background: var(--vlx-card-bg); border: 1px solid var(--vlx-card-border); border-radius: .7rem; padding: 1rem 1.1rem; transition: border-color 150ms, transform 150ms; }
+.md-typeset .vlx-card:hover { border-color: var(--vlx-violet-soft); transform: translateY(-2px); }
+.md-typeset .vlx-card h3 { margin: .2rem 0 .4rem; font-size: .9rem; }
+.md-typeset .vlx-card p { margin: 0; font-size: .74rem; color: var(--md-default-fg-color--light); }
+.md-typeset .vlx-card .twemoji { color: var(--vlx-violet-soft); }
+
+/* Safety classes */
+.vlx-read { color: var(--vlx-green); font-weight: 700; font-family: var(--md-code-font-family); }
+.vlx-write { color: var(--vlx-amber); font-weight: 700; font-family: var(--md-code-font-family); }
+.vlx-danger { color: var(--vlx-red); font-weight: 700; font-family: var(--md-code-font-family); }
+
+/* Numbered steps in the QuickStart */
+.md-typeset .vlx-step { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; margin-right: .5rem; border-radius: 50%; background: var(--vlx-violet); color: #fff; font-size: .8rem; font-weight: 700; vertical-align: .1rem; }
+.md-typeset h1.vlx-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

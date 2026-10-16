@@ -1,0 +1,157 @@
+site_name: vlx
+site_description: >-
+  vlx, the Varlink explorer: a beautiful terminal UI and CLI for browsing and
+  calling Varlink services such as systemd's io.systemd.* APIs. Read-only by
+  default.
+site_author: Ross Edman
+site_url: https://rossedman.github.io/vlx/
+repo_url: https://github.com/rossedman/vlx
+repo_name: rossedman/vlx
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Ross Edman &middot; MIT License
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo-mono.svg
+  favicon: assets/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    admonition:
+      note: octicons/note-16
+      tip: octicons/light-bulb-16
+      warning: octicons/alert-16
+      danger: octicons/zap-16
+      example: octicons/beaker-16
+      info: octicons/info-16
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to system preference
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.footer
+    - navigation.indexes
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/rossedman/vlx
+      name: vlx on GitHub
+    - icon: material/link-variant
+      link: https://rossedman.github.io/sdvarlink/
+      name: sdvarlink, the library under vlx
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.betterem
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - QuickStart: getting-started/quickstart.md
+      - Installation: getting-started/installation.md
+  - Guides:
+      - The explorer: guides/explorer.md
+      - Calling methods: guides/calling.md
+      - Scripting: guides/scripting.md
+      - Safety: guides/safety.md
+      - Configuration: guides/configuration.md
+      - systemd recipes: guides/systemd.md
+  - Reference:
+      - reference/index.md
+      - Keys: reference/keys.md
+      - Exit codes: reference/exit-codes.md
+      - Discovery: reference/discovery.md
+      - Commands:
+          - vlx: reference/cli/vlx.md
+          - vlx explore: reference/cli/vlx_explore.md
+          - vlx list: reference/cli/vlx_list.md
+          - vlx info: reference/cli/vlx_info.md
+          - vlx describe: reference/cli/vlx_describe.md
+          - vlx template: reference/cli/vlx_template.md
+          - vlx call: reference/cli/vlx_call.md
+          - vlx demo: reference/cli/vlx_demo.md
+          - vlx config: reference/cli/vlx_config.md
+          - vlx config init: reference/cli/vlx_config_init.md
+          - vlx config path: reference/cli/vlx_config_path.md
+          - vlx config show: reference/cli/vlx_config_show.md
+          - vlx version: reference/cli/vlx_version.md
+          - vlx completion: reference/cli/vlx_completion.md
+          - vlx completion bash: reference/cli/vlx_completion_bash.md
+          - vlx completion zsh: reference/cli/vlx_completion_zsh.md
+          - vlx completion fish: reference/cli/vlx_completion_fish.md
+          - vlx completion powershell: reference/cli/vlx_completion_powershell.md
+  - Project:
+      - Specification: project/spec.md
+      - Architecture: project/architecture.md
+      - Contributing: project/contributing.md
+      - Security: project/security.md
+      - Changelog: project/changelog.md
