@@ -2,7 +2,7 @@ module github.com/rossedman/vlx
 
 go 1.24.7
 
-require github.com/rossedman/sdvarlink v0.1.1-0.20261016022413-d74273c6379e
+require github.com/rossedman/sdvarlink v0.1.0
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
