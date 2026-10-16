@@ -87,6 +87,9 @@ vlx keeps no history and writes no files except `vlx config init`.
   no plugins.
 - **Discovery is passive.** Listing reads a fixed set of directories one
   level deep and never connects; `vlx list --probe` only sends `GetInfo`.
+  In the explorer, preview and search read services with the read-only
+  introspection methods only — turn that off with `preview: false` or
+  `--no-preview`.
 - **The config file is checked.** It can enable writes, so vlx refuses a
   config file that is writable by group or others, or owned by anyone other
   than you or root.

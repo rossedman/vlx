@@ -31,8 +31,8 @@ vlx demo                                              # a sample service, works 
 
 Then:
 
-1. ↑/↓ to pick a method, **⏎** to open it.
-2. Edit the pre-filled JSON parameters.
+1. ↑/↓ to pick a method (or **Ctrl+K** to search), **⏎** to open it.
+2. Fill in the form: one row per parameter, with its docs.
 3. **ctrl+s** to send. Replies stream in on the right.
 
 On a Linux machine with systemd v257+, run plain **`vlx`** to explore your
@@ -48,8 +48,9 @@ method name and the JSON it wants. vlx is for everything before that:
 | | |
 | --- | --- |
 | **Zero-config discovery** | Finds sockets in `/run/varlink/registry`, `/run/systemd/**`, `/run/udev` and your user session. |
-| **Browse with docs** | Interfaces, methods, types and errors in a tree; doc comments, expanded types, streaming hints. |
-| **Schema-aware calls** | Parameters pre-filled from the IDL and validated as you type, before anything is sent. |
+| **Browse with docs** | Interfaces appear as you move; doc comments, expanded types, streaming hints. |
+| **Search everything** | Ctrl+K finds any service, method, type or error on the machine: `resolve host`. |
+| **Form-based calls** | One field per parameter, pickers for enums, inline docs and errors; Ctrl+J for raw JSON. |
 | **Live streams** | `more` replies arrive as they happen; Esc stops them. |
 | **Safe by default** | READ / WRITE / DANGER classification; writes need `--allow-writes` *and* a confirmation. |
 | **Scriptable** | `vlx call … -o json`, NDJSON streams, stable exit codes. |

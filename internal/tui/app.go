@@ -83,18 +83,23 @@ type Model struct {
 	svcOffset  int
 	svcFilter  textinput.Model
 
-	svc       *client.Service
-	svcPath   string
-	expanded  map[string]bool
-	rows      []row
-	memCursor int
-	memOffset int
-	memFilter textinput.Model
+	svc        *client.Service
+	svcPath    string
+	cache      map[string]*client.Service
+	previewSeq int
+	openOnLoad string // move into the tree when this path finishes loading
+	expanded   map[string]bool
+	rows       []row
+	memCursor  int
+	memOffset  int
+	memFilter  textinput.Model
 
 	filtering bool // the focused pane's filter input has the keyboard
 
 	detail  viewport.Model
 	showIDL bool
+
+	palette *palette
 
 	call   *callState
 	drafts map[string]string
@@ -119,6 +124,7 @@ func New(opts Options) *Model {
 		copts:      client.Options{Timeout: cfg.Timeout, MaxFrameSize: cfg.MaxFrameSize},
 		root:       os.Geteuid() == 0,
 		state:      map[string]*sockState{},
+		cache:      map[string]*client.Service{},
 		expanded:   map[string]bool{},
 		drafts:     map[string]string{},
 		detail:     viewport.New(40, 10),
@@ -136,7 +142,7 @@ func New(opts Options) *Model {
 	m.help.Styles.FullDesc = mutedStyle
 	if opts.Target != "" {
 		m.svcPath = opts.Target
-		m.focus = paneMembers
+		m.openOnLoad = opts.Target
 	}
 	return m
 }
@@ -182,11 +188,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case discoveredMsg:
-		m.setSockets(msg.sockets)
-		return m, nil
+		return m, m.setSockets(msg.sockets)
+
+	case previewMsg:
+		return m, m.handlePreview(msg)
 
 	case introspectedMsg:
-		return m, m.handleIntrospected(msg)
+		cmd := m.handleIntrospected(msg)
+		m.refreshPalette()
+		return m, cmd
 
 	case replyMsg:
 		if m.call != nil && msg.id == m.call.id {
@@ -225,6 +235,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.updateBrowse(msg)
 		}
 	}
+	if m.palette != nil {
+		var cmd tea.Cmd
+		m.palette.input, cmd = m.palette.input.Update(msg)
+		return m, cmd
+	}
 	if m.screen == screenCall && m.call != nil {
 		return m, m.call.forward(msg)
 	}
@@ -256,7 +271,7 @@ func (m *Model) stopCall() {
 	}
 }
 
-func (m *Model) setSockets(sockets []discovery.Socket) {
+func (m *Model) setSockets(sockets []discovery.Socket) tea.Cmd {
 	var selected string
 	if s, ok := m.selectedSocket(); ok {
 		selected = s.Path
@@ -279,6 +294,12 @@ func (m *Model) setSockets(sockets []discovery.Socket) {
 		}
 	}
 	m.refreshDetail()
+	if m.svcPath == "" {
+		if s, ok := m.selectedSocket(); ok {
+			return m.showService(s.Path)
+		}
+	}
+	return nil
 }
 
 func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
@@ -290,6 +311,13 @@ func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
 	st.loading = false
 	st.err = msg.err
 	st.ok = msg.err == nil
+	if msg.err == nil {
+		m.cache[msg.path] = msg.svc
+	}
+	opening := m.openOnLoad == msg.path
+	if opening {
+		m.openOnLoad = ""
+	}
 	if msg.path != m.svcPath {
 		return nil
 	}
@@ -297,27 +325,17 @@ func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
 		m.svc = nil
 		m.rows = nil
 		m.focus = paneServices
-		m.refreshDetail()
-		return m.setFlash("Could not open "+msg.path+": "+msg.err.Error(), false)
-	}
-	m.svc = msg.svc
-	m.expanded = map[string]bool{}
-	for _, i := range m.svc.Interfaces {
-		m.expanded[i.Name] = i.Name != "org.varlink.service"
-	}
-	m.memFilter.SetValue("")
-	m.rebuildRows()
-	m.memCursor, m.memOffset = 0, 0
-	for i, r := range m.rows {
-		if r.kind == rowMethod {
-			m.memCursor = i
-			break
+		m.layout()
+		if opening {
+			return m.setFlash("Could not open "+msg.path+": "+msg.err.Error(), false)
 		}
+		return nil
 	}
-	if m.focus == paneServices {
+	m.setService(msg.svc)
+	if opening {
 		m.focus = paneMembers
+		m.layout()
 	}
-	m.refreshDetail()
 	return nil
 }
 
@@ -371,6 +389,9 @@ func (m *Model) View() string {
 		body = m.viewCall()
 	default:
 		body = m.viewBrowse()
+	}
+	if m.palette != nil && m.screen == screenBrowse {
+		body = lipgloss.Place(m.width, m.bodyHeight(), lipgloss.Center, lipgloss.Center, m.viewPalette())
 	}
 	if m.call != nil && m.call.confirm != confirmNone && m.screen == screenCall {
 		body = lipgloss.Place(m.width, m.bodyHeight(), lipgloss.Center, lipgloss.Center, m.viewConfirm())
@@ -437,5 +458,6 @@ func (m *Model) viewFooter() string {
 	default:
 		keys = m.browseHelpKeys()
 	}
-	return " " + m.help.ShortHelpView(keys)
+	// help truncates with an ellipsis, but not in every case; clamp anyway.
+	return ansi.Truncate(" "+m.help.ShortHelpView(keys), m.width, "…")
 }

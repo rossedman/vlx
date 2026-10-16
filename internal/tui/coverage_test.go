@@ -32,8 +32,7 @@ func keyMsg(t tea.KeyType) tea.KeyMsg { return tea.KeyMsg{Type: t} }
 
 // setJSON replaces the call's parameters.
 func setJSON(c *callState, s string) {
-	c.editor.SetValue(s)
-	c.validate()
+	c.setParams(s)
 }
 
 func selectRow(h *harness, kind rowKind, name string) {
@@ -198,6 +197,7 @@ func TestWelcomeScreens(t *testing.T) {
 	}
 	defer srv.Close()
 	h = newPlainModel(t, []string{filepath.Dir(srv.Path())}, "")
+	h.m.cfg.Preview = false // connect only on enter
 	h.run(h.m.Init())
 	if !strings.Contains(h.view(), "Press ⏎ to connect") {
 		t.Errorf("selected:\n%s", h.view())
@@ -299,8 +299,8 @@ func TestCallKeys(t *testing.T) {
 	if c.focusResp {
 		t.Fatal("tab did not return to the editor")
 	}
-	// Typing in the editor revalidates.
-	h.keys("x")
+	// Typing in the JSON editor revalidates.
+	h.keys("ctrl+j", "x")
 	if c.validErr == nil {
 		t.Fatal("invalid JSON not flagged")
 	}

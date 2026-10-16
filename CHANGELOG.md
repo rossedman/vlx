@@ -8,6 +8,17 @@ All notable changes to vlx are recorded here. The format follows
 
 ### Added
 
+- Parameter form on the call screen: one row per parameter with a fitting
+  input (text, number, enum and bool pickers, JSON for complex types),
+  inline docs and per-field errors. Ctrl+J switches to raw JSON and back.
+- Preview: services are introspected (read-only) as the cursor rests on
+  them, so their interfaces appear without opening them. `preview: false`
+  or `--no-preview` turns it off.
+- Search palette (Ctrl+K or `:`) across every service, interface, method,
+  type and error, with background indexing and multi-word fuzzy matching.
+- Boilerplate interfaces (`org.varlink.service`, `io.systemd.service`) start
+  collapsed.
+
 - The explorer: discover Varlink sockets, browse interfaces, methods, types
   and errors with their documentation, view raw IDL, filter everything.
 - The call screen: parameters pre-filled from the IDL and validated as you

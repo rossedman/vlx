@@ -55,6 +55,7 @@ of the name) of a discovered socket, e.g. "hostname".`,
 	f.Bool("no-color", false, "disable colour (also NO_COLOR=1)")
 	f.Int("max-frame-size", 16<<20, "largest message accepted from a service, in bytes")
 	f.StringSliceVar(&a.search, "search", nil, "extra directory to search for sockets (repeatable)")
+	f.BoolVar(&a.noPreview, "no-preview", false, "in the explorer, connect to a service only when you open it")
 
 	bind := map[string]string{
 		config.KeyTimeout:      config.KeyTimeout,

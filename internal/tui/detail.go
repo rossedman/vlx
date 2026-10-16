@@ -101,7 +101,11 @@ func (m *Model) welcome(width int) string {
 		b.WriteString(textStyle.Render(fmt.Sprintf("Found %d services. ", len(m.sockets))))
 		b.WriteString(mutedStyle.Render("Pick one and press ") + brandStyle.Render("⏎") + mutedStyle.Render("."))
 		b.WriteString("\n\n")
-		b.WriteString(wrap(mutedStyle.Render("Nothing is sent to a service until you open it. "+modeExplanation(m.policy.AllowWrites)), width))
+		intro := "Nothing is sent to a service until you open it. "
+		if m.cfg.Preview {
+			intro = "As you move, vlx reads each service's description with read-only introspection. "
+		}
+		b.WriteString(wrap(mutedStyle.Render(intro+modeExplanation(m.policy.AllowWrites)), width))
 	}
 	return b.String()
 }
@@ -148,6 +152,9 @@ func (m *Model) detailService(width int) string {
 		return b.String()
 	}
 	info := m.svc.Info
+	if m.focus == paneServices {
+		b.WriteString("\n" + mutedStyle.Render("Press ") + brandStyle.Render("⏎") + mutedStyle.Render(" or ") + brandStyle.Render("→") + mutedStyle.Render(" to explore its interfaces.") + "\n")
+	}
 	b.WriteString(heading("Service") + "\n")
 	for _, kv := range [][2]string{
 		{"vendor", info.Vendor}, {"product", info.Product}, {"version", info.Version}, {"url", info.URL},
