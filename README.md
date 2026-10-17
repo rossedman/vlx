@@ -115,6 +115,7 @@ the [specification](https://rossedman.github.io/vlx/project/spec/).
 ## Contributing
 
 Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## License
 
