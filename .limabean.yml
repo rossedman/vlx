@@ -1,0 +1,6 @@
+# A dev VM for vlx: `limabean up` from anywhere in the checkout.
+# The default packs already include Go and golangci-lint, and the Ubuntu
+# guest runs systemd, so vlx has real io.systemd.* sockets to explore.
+setup: |
+  make install
+  vlx version
