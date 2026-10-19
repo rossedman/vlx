@@ -9,20 +9,28 @@ import (
 )
 
 func newVersionCommand(a *app) *cobra.Command {
-	return &cobra.Command{
+	var short bool
+	cmd := &cobra.Command{
 		Use:     "version",
 		GroupID: "other",
 		Short:   "Print version and build information",
 		Args:    usageArgs(cobra.NoArgs),
 		RunE: func(*cobra.Command, []string) error {
 			info := version.Get()
+			if short {
+				fmt.Fprintln(a.out, info.Version)
+				return nil
+			}
 			if a.json() {
 				return writeJSON(a.out, info)
 			}
 			fmt.Fprintf(a.out, "vlx %s\n", info.Version)
 			for _, kv := range [][2]string{
-				{"commit", info.Commit}, {"built", info.Date}, {"go", info.GoVersion},
-				{"platform", info.Platform}, {"sdvarlink", info.Sdvarlink},
+				{"commit", info.Commit},
+				{"built", info.Date},
+				{"go", info.GoVersion},
+				{"platform", info.Platform},
+				{"sdvarlink", info.Sdvarlink},
 			} {
 				if kv[1] != "" {
 					fmt.Fprintf(a.out, "  %-10s %s\n", kv[0], kv[1])
@@ -31,4 +39,6 @@ func newVersionCommand(a *app) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&short, "short", false, "print only the version number")
+	return cmd
 }
