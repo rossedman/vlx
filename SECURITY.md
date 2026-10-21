@@ -24,6 +24,31 @@ ready, and credited unless you prefer otherwise.
 
 Security fixes go into the latest release.
 
+## Verifying releases
+
+Releases after v0.2.1 are signed keylessly with [Sigstore](https://www.sigstore.dev/)
+from the release workflow: `checksums.txt` has a cosign signature bundle,
+`checksums.txt.sigstore.json`, and covers every archive and package. Each
+release also has a GitHub build provenance attestation. To check a download,
+put it in a directory with both files and run (with
+[cosign](https://docs.sigstore.dev/cosign/system_config/installation/) v2.4 or
+newer, and `VERSION` set to the release tag, e.g. `v0.3.0`):
+
+```sh
+cosign verify-blob \
+  --certificate-identity "https://github.com/rossedman/vlx/.github/workflows/release.yml@refs/tags/${VERSION}" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --bundle checksums.txt.sigstore.json \
+  checksums.txt
+sha256sum --check --ignore-missing checksums.txt
+```
+
+Or check the provenance with the GitHub CLI:
+
+```sh
+gh attestation verify vlx_*.tar.gz --repo rossedman/vlx
+```
+
 ## Scope
 
 In scope: vlx itself — the safety gate and classifications, sanitisation,
