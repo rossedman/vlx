@@ -17,6 +17,7 @@ func signalContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	return signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 }
 
+// newCompactEncoder returns a JSON encoder for w that writes one line per value and does not escape HTML.
 func newCompactEncoder(w io.Writer) *json.Encoder {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)

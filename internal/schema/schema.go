@@ -54,6 +54,9 @@ type skeleton struct {
 	iface *idl.Interface
 }
 
+// value writes a placeholder for t at the given indent: a zero value,
+// the first enum value, or required struct fields only; past maxDepth it
+// writes null.
 func (s skeleton) value(b *bytes.Buffer, t *idl.Type, indent, depth int) {
 	if depth > maxDepth {
 		b.WriteString("null")
@@ -116,6 +119,7 @@ func (s skeleton) value(b *bytes.Buffer, t *idl.Type, indent, depth int) {
 	}
 }
 
+// lookup finds the named type in the interface, or returns nil.
 func (s skeleton) lookup(name string) *idl.TypeDef {
 	if s.iface == nil {
 		return nil
@@ -129,6 +133,7 @@ type Error struct {
 	Msg  string
 }
 
+// Error prefixes the message with the path when there is one.
 func (e *Error) Error() string {
 	if e.Path == "" {
 		return e.Msg
@@ -139,6 +144,7 @@ func (e *Error) Error() string {
 // Errors is every validation failure found, in document order.
 type Errors []*Error
 
+// Error shows the first failure and how many more there are.
 func (es Errors) Error() string {
 	switch len(es) {
 	case 0:
@@ -184,10 +190,14 @@ type validator struct {
 	errs  Errors
 }
 
+// fail records a failure at path.
 func (vl *validator) fail(path, format string, args ...any) {
 	vl.errs = append(vl.errs, &Error{Path: path, Msg: fmt.Sprintf(format, args...)})
 }
 
+// check validates v against t at path, recording every mismatch, missing
+// required field and unknown field. Unknown named types are left to the
+// service.
 func (vl *validator) check(path string, t *idl.Type, v any, depth int) {
 	if depth > maxDepth {
 		return
@@ -296,6 +306,7 @@ func (vl *validator) check(path string, t *idl.Type, v any, depth int) {
 	}
 }
 
+// lookup finds the named type in the interface, or returns nil.
 func (vl *validator) lookup(name string) *idl.TypeDef {
 	if vl.iface == nil {
 		return nil
@@ -303,6 +314,7 @@ func (vl *validator) lookup(name string) *idl.TypeDef {
 	return vl.iface.Type(name)
 }
 
+// kindOf names the JSON kind of a decoded value for error messages.
 func kindOf(v any) string {
 	switch v.(type) {
 	case nil:
@@ -321,6 +333,7 @@ func kindOf(v any) string {
 	return fmt.Sprintf("%T", v)
 }
 
+// enumList formats t's enum values as a quoted, bracketed list.
 func enumList(t *idl.Type) string {
 	names := make([]string, len(t.Values))
 	for i, v := range t.Values {
@@ -329,6 +342,7 @@ func enumList(t *idl.Type) string {
 	return "[" + strings.Join(names, ", ") + "]"
 }
 
+// sortedKeys returns m's keys in order, so errors come out deterministic.
 func sortedKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -349,6 +363,7 @@ func suggest(name string, fields []*idl.Field) string {
 	return ""
 }
 
+// jsonErrorMessage adds the line and column to a JSON syntax error.
 func jsonErrorMessage(err error, data []byte) string {
 	var se *json.SyntaxError
 	if ok := asSyntax(err, &se); ok {
@@ -358,6 +373,8 @@ func jsonErrorMessage(err error, data []byte) string {
 	return err.Error()
 }
 
+// asSyntax reports whether err is a *json.SyntaxError and stores it in
+// target.
 func asSyntax(err error, target **json.SyntaxError) bool {
 	se, ok := err.(*json.SyntaxError) //nolint:errorlint // json returns it unwrapped
 	if ok {
@@ -366,6 +383,7 @@ func asSyntax(err error, target **json.SyntaxError) bool {
 	return ok
 }
 
+// position converts a decoder byte offset into a 1-based line and column.
 func position(data []byte, offset int64) (line, col int) {
 	line, col = 1, 1
 	for i := int64(0); i < offset-1 && i < int64(len(data)); i++ {

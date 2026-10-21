@@ -63,6 +63,7 @@ type paramForm struct {
 	height int
 }
 
+// newParamForm builds a form with a field per parameter of in, focusing the first.
 func newParamForm(iface *idl.Interface, in *idl.Type) *paramForm {
 	f := &paramForm{iface: iface, in: in}
 	if in == nil {
@@ -94,6 +95,8 @@ func resolveType(iface *idl.Interface, t *idl.Type) (base *idl.Type, optional bo
 	return t, optional
 }
 
+// newFormField picks how a parameter is edited from its resolved type. Required
+// JSON fields start with a skeleton value; optional choices get "(unset)" first.
 func newFormField(iface *idl.Interface, fd *idl.Field) *formField {
 	base, optional := resolveType(iface, fd.Type)
 	ff := &formField{name: fd.Name, typ: fd.Type, base: base, doc: fd.Doc, optional: optional}
@@ -240,6 +243,7 @@ func (f *paramForm) required() bool {
 	return false
 }
 
+// choiceValues returns the choices without the "(unset)" entry.
 func (ff *formField) choiceValues() []string {
 	if ff.optional {
 		return ff.choices[1:]
@@ -258,6 +262,7 @@ func (f *paramForm) lines(width int, focused bool) int {
 	return n
 }
 
+// jsonPlaceholder describes the JSON a field of type t expects.
 func jsonPlaceholder(t *idl.Type) string {
 	switch t.Kind {
 	case idl.Array:
@@ -268,6 +273,7 @@ func jsonPlaceholder(t *idl.Type) string {
 	return "any JSON value"
 }
 
+// compactJSON strips the whitespace from raw, returning it as is if it is not valid JSON.
 func compactJSON(raw []byte) string {
 	var b bytes.Buffer
 	if err := json.Compact(&b, raw); err != nil {
@@ -276,6 +282,7 @@ func compactJSON(raw []byte) string {
 	return b.String()
 }
 
+// isChoice reports whether the field cycles through choices instead of taking text.
 func (ff *formField) isChoice() bool { return ff.kind == kindBool || ff.kind == kindEnum }
 
 // value returns the field's JSON, whether to include it, and a problem.
@@ -476,6 +483,7 @@ func (f *paramForm) load(data string) error {
 	return nil
 }
 
+// current returns the field under the cursor, or nil if there is none.
 func (f *paramForm) current() *formField {
 	if f.cursor < 0 || f.cursor >= len(f.fields) {
 		return nil
@@ -497,12 +505,14 @@ func (f *paramForm) focus() tea.Cmd {
 	return cmd
 }
 
+// blur takes the keyboard away from every field.
 func (f *paramForm) blur() {
 	for _, ff := range f.fields {
 		ff.input.Blur()
 	}
 }
 
+// move moves the cursor d fields, stopping at the ends, and focuses that field.
 func (f *paramForm) move(d int) tea.Cmd {
 	if len(f.fields) == 0 {
 		return nil
@@ -644,6 +654,8 @@ func (f *paramForm) view(width, height int, focused bool) string {
 	return strings.Join(lines, "\n")
 }
 
+// renderValue draws a field's value: a choice between arrows when active, or the
+// text input sized to width.
 func (f *paramForm) renderValue(ff *formField, width int, active bool) string {
 	if ff.isChoice() {
 		v := ff.choices[ff.choice]
@@ -667,6 +679,7 @@ func (f *paramForm) renderValue(ff *formField, width int, active bool) string {
 	return prefix + ff.input.View()
 }
 
+// hint is the help line shown under the focused field.
 func (ff *formField) hint() string {
 	switch ff.kind {
 	case kindBool:
@@ -688,6 +701,7 @@ func (ff *formField) hint() string {
 	}
 }
 
+// padRight pads s with spaces to w cells.
 func padRight(s string, w int) string {
 	if d := w - ansi.StringWidth(s); d > 0 {
 		return s + strings.Repeat(" ", d)

@@ -14,6 +14,8 @@ import (
 	"github.com/rossedman/vlx/internal/sanitize"
 )
 
+// detailRow is the docs view of an interface, method, type or error, as
+// shown on a detail page.
 func (m *Model) detailRow(r item, width int) string {
 	var b strings.Builder
 	switch r.kind {
@@ -63,6 +65,8 @@ func (m *Model) detailRow(r item, width int) string {
 	return b.String()
 }
 
+// kindLabel heads the body of a type: "Values" for an enum, "Fields"
+// otherwise.
 func kindLabel(t *idl.Type) string {
 	if t != nil && t.Kind == idl.Enum {
 		return "Values"
@@ -70,6 +74,8 @@ func kindLabel(t *idl.Type) string {
 	return "Fields"
 }
 
+// detailMethod writes a method's docs: whether it streams, its parameters,
+// returns, the types it uses, its interface's errors and its safety class.
 func (m *Model) detailMethod(b *strings.Builder, r item, width int) {
 	mt := r.method
 
@@ -146,6 +152,7 @@ func writeFields(b *strings.Builder, t *idl.Type, width int) {
 	}
 }
 
+// writeTypeBody writes an enum's values, or the fields of any other type.
 func writeTypeBody(b *strings.Builder, t *idl.Type, width int) {
 	if t == nil {
 		return

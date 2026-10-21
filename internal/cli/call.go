@@ -30,6 +30,8 @@ type callFlags struct {
 	noValidate bool
 }
 
+// newCallCommand builds `vlx call`, which validates the parameters against the method's IDL,
+// applies the safety policy, sends the call and prints each reply.
 func newCallCommand(a *app) *cobra.Command {
 	var f callFlags
 	cmd := &cobra.Command{
@@ -88,11 +90,13 @@ func kvArgs(args []string) ([]cmdline.Arg, error) {
 	return l.Args, nil
 }
 
+// looksLikeArg reports whether s reads as NAME=VALUE rather than the start of a JSON object.
 func looksLikeArg(s string) bool {
 	name, _, ok := strings.Cut(s, "=")
 	return ok && name != "" && !strings.ContainsAny(name, "{[\" \t")
 }
 
+// quoteAll quotes each word for the cmdline parser and joins them with spaces.
 func quoteAll(words []string) string {
 	q := make([]string, len(words))
 	for i, w := range words {
@@ -101,6 +105,8 @@ func quoteAll(words []string) string {
 	return strings.Join(q, " ")
 }
 
+// readParams returns the JSON parameters from the PARAMS argument, --file or stdin ('-'),
+// reading at most 16 MiB from stdin.
 func readParams(a *app, f callFlags, args []string) ([]byte, error) {
 	src := ""
 	if len(args) == 3 {
@@ -121,6 +127,8 @@ func readParams(a *app, f callFlags, args []string) ([]byte, error) {
 	return []byte(src), nil
 }
 
+// runCall does the work of `vlx call`: resolve the service, build and check the parameters,
+// settle --more from the IDL, then dry-run or confirm and send, mapping failures to exit codes.
 func runCall(ctx context.Context, a *app, f callFlags, args []string) error {
 	path, err := a.resolve(args[0])
 	if err != nil {
@@ -237,6 +245,7 @@ func runCall(ctx context.Context, a *app, f callFlags, args []string) error {
 	return nil
 }
 
+// paramSuffix formats error parameters to append to a message, or nothing when they are empty.
 func paramSuffix(p []byte) string {
 	if len(p) == 0 || string(p) == "{}" {
 		return ""
@@ -244,6 +253,7 @@ func paramSuffix(p []byte) string {
 	return " " + string(p)
 }
 
+// printReply prints one reply: highlighted, indented JSON on a terminal, one compact line otherwise or with -o json.
 func (a *app) printReply(params []byte) error {
 	if a.json() || !a.outIsTTY() {
 		_, err := fmt.Fprintln(a.out, compactLine(params))
@@ -253,6 +263,7 @@ func (a *app) printReply(params []byte) error {
 	return err
 }
 
+// compactLine returns p as one-line JSON, or p unchanged when it does not parse.
 func compactLine(p []byte) string {
 	c, err := client.Compact(p)
 	if err != nil {
@@ -261,6 +272,7 @@ func compactLine(p []byte) string {
 	return string(c)
 }
 
+// writeJSONCompact writes v as one line of JSON without HTML escaping.
 func writeJSONCompact(w io.Writer, v any) error {
 	enc := newCompactEncoder(w)
 	return enc.Encode(v)
@@ -301,6 +313,7 @@ func (a *app) checkSafety(method, path, params string, f callFlags) error {
 	return nil
 }
 
+// classLabel names a safety class for the confirmation prompt, red for DANGER and amber otherwise when color is on.
 func classLabel(c safety.Class, color bool) string {
 	if !color {
 		return c.String()
@@ -313,6 +326,7 @@ func classLabel(c safety.Class, color bool) string {
 	}
 }
 
+// truncate cuts s to n bytes, adding an ellipsis when it cut anything.
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s

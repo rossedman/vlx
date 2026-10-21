@@ -41,6 +41,7 @@ var (
 	flashStyle = lipgloss.NewStyle().Foreground(render.Green)
 )
 
+// badge renders label as a solid block of colour fg, as in the header.
 func badge(label string, fg lipgloss.TerminalColor) string {
 	return lipgloss.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#0F1117"}).
@@ -50,10 +51,13 @@ func badge(label string, fg lipgloss.TerminalColor) string {
 		Render(label)
 }
 
+// pill renders label as bold text in fg.
 func pill(label string, fg lipgloss.TerminalColor) string {
 	return lipgloss.NewStyle().Foreground(fg).Bold(true).Render(label)
 }
 
+// classColor is the colour of a safety class: green READ, amber WRITE,
+// red for anything more.
 func classColor(c safety.Class) lipgloss.TerminalColor {
 	switch c {
 	case safety.Read:
@@ -65,6 +69,7 @@ func classColor(c safety.Class) lipgloss.TerminalColor {
 	}
 }
 
+// classTag renders a safety class's name in its colour.
 func classTag(c safety.Class) string {
 	return pill(c.String(), classColor(c))
 }

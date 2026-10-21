@@ -13,7 +13,8 @@ vlx version [flags]
 ### Options
 
 ```
-  -h, --help   help for version
+  -h, --help    help for version
+      --short   print only the version number
 ```
 
 ### Options inherited from parent commands

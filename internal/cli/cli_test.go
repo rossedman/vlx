@@ -14,6 +14,7 @@ import (
 
 	"github.com/rossedman/vlx/internal/config"
 	"github.com/rossedman/vlx/internal/demo"
+	"github.com/rossedman/vlx/internal/version"
 )
 
 type result struct {
@@ -277,5 +278,17 @@ func TestVersion(t *testing.T) {
 	var v map[string]any
 	if r.code != 0 || json.Unmarshal([]byte(r.out), &v) != nil || v["goVersion"] == "" {
 		t.Fatalf("%+v", r)
+	}
+}
+
+func TestVersionShort(t *testing.T) {
+	want := version.Get().Version + "\n"
+	for _, args := range [][]string{
+		{"version", "--short"},
+		{"version", "--short", "-o", "json"},
+	} {
+		if r := run(t, "", args...); r.code != 0 || r.out != want {
+			t.Fatalf("%v: got %+v, want out %q", args, r, want)
+		}
 	}
 }

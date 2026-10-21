@@ -9,6 +9,8 @@ import (
 	"syscall"
 )
 
+// checkOwner refuses a file owned by anyone other than the current user or
+// root.
 func checkOwner(path string, fi fs.FileInfo) error {
 	st, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {

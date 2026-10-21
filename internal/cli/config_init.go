@@ -12,6 +12,8 @@ import (
 	"github.com/rossedman/vlx/internal/config"
 )
 
+// newConfigInitCommand builds `vlx config init`, which writes the commented starter config
+// with mode 0600 and refuses to overwrite an existing file without --force.
 func newConfigInitCommand(a *app) *cobra.Command {
 	var force bool
 	cmd := &cobra.Command{

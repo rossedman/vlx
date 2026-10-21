@@ -65,6 +65,8 @@ func (m *Model) viewHints() string {
 	return ansi.Truncate(strings.Repeat(" ", gutter)+strings.Join(parts, "   "), m.width, "…")
 }
 
+// hints lists the key and action pairs for the current state: a
+// confirmation, the command line, or the kind of page.
 func (m *Model) hints() [][2]string {
 	p := m.page()
 	if c := m.currentCall(); c != nil && c.confirm != confirmNone {

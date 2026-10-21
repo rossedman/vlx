@@ -76,6 +76,8 @@ type callState struct {
 	confirmInput textinput.Model
 }
 
+// newCallState sets up a method page with the parameters' skeleton loaded into
+// the form and the JSON editor.
 func newCallState(path string, iface *client.Interface, mt *idl.Method) *callState {
 	skel, _ := schema.Skeleton(iface.Parsed, mt.In)
 	c := &callState{
@@ -163,6 +165,8 @@ func (c *callState) setArgs(args []cmdline.Arg) error {
 	return nil
 }
 
+// validate checks the parameters from the form or the editor against the IDL,
+// keeping the result in validErr.
 func (c *callState) validate() {
 	if c.jsonMode {
 		c.validErr = schema.Validate(c.iface.Parsed, c.method.In, []byte(c.editor.Value()))
@@ -171,6 +175,7 @@ func (c *callState) validate() {
 	c.validErr = c.form.validate(c.method.In)
 }
 
+// focusEditor gives the keyboard to the JSON editor or the form, whichever is shown.
 func (c *callState) focusEditor() tea.Cmd {
 	if c.jsonMode {
 		return c.editor.Focus()
@@ -178,6 +183,7 @@ func (c *callState) focusEditor() tea.Cmd {
 	return c.form.focus()
 }
 
+// blurEditor takes the keyboard away from both the JSON editor and the form.
 func (c *callState) blurEditor() {
 	c.editor.Blur()
 	c.form.blur()
@@ -205,6 +211,7 @@ func (c *callState) toggleMode() error {
 	return nil
 }
 
+// verdict classifies the call, taking oneway into account.
 func (c *callState) verdict(cl *safety.Classifier) safety.Verdict {
 	return cl.ClassifyCall(c.qualified, c.oneway)
 }
@@ -223,6 +230,7 @@ func (c *callState) forward(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+// addReply renders and keeps a reply, dropping the oldest beyond maxKeep.
 func (c *callState) addReply(r client.Reply, maxKeep int, renderFn func(int, client.Reply, bool) string) {
 	c.total++
 	c.replies = append(c.replies, renderedReply{n: c.total, reply: r, text: renderFn(c.total, r, c.reveal)})
@@ -233,6 +241,7 @@ func (c *callState) addReply(r client.Reply, maxKeep int, renderFn func(int, cli
 	c.elapsed = time.Since(c.started)
 }
 
+// finish marks the call ended. A cancel the user asked for is not an error.
 func (c *callState) finish(err error) {
 	c.running = false
 	c.elapsed = time.Since(c.started)
@@ -251,6 +260,9 @@ type methodLayout struct {
 	earlier []historyEntry
 }
 
+// methodLayout fits the doc, parameters, result and earlier calls in the body.
+// When the result would get fewer than 3 lines it gives up earlier calls,
+// then doc lines, then parameter lines.
 func (m *Model) methodLayout(p *page) methodLayout {
 	c := p.call
 	w, h := m.bodyWidth(), m.bodyHeight()
@@ -311,6 +323,8 @@ func (m *Model) earlier(c *callState) []historyEntry {
 	return out
 }
 
+// layoutMethod sizes the editor, form and result to the method page's layout,
+// re-rendering replies when the result's size changes.
 func (m *Model) layoutMethod(p *page) {
 	c := p.call
 	w := m.bodyWidth()
@@ -325,6 +339,8 @@ func (m *Model) layoutMethod(p *page) {
 	}
 }
 
+// renderReply draws a reply as a header of its number, timing and flags over its
+// colored JSON, redacted unless reveal is set.
 func (m *Model) renderReply(n int, r client.Reply, reveal bool) string {
 	red := m.redactor
 	if reveal {
@@ -343,6 +359,7 @@ func (m *Model) renderReply(n int, r client.Reply, reveal bool) string {
 	return b.String()
 }
 
+// rerenderReplies redraws the kept replies, after a resize or a reveal toggle.
 func (m *Model) rerenderReplies(c *callState) {
 	for i := range c.replies {
 		c.replies[i].text = m.renderReply(c.replies[i].n, c.replies[i].reply, c.reveal)
@@ -412,6 +429,7 @@ func (m *Model) callLine(c *callState, args []cmdline.Arg) string {
 	return cmdline.Format(m.svcToken(c.path), c.method.Name, args)
 }
 
+// compactOr compacts s as JSON, or collapses its whitespace if it is not valid.
 func compactOr(s string) string {
 	if p, err := client.Compact([]byte(s)); err == nil {
 		return string(p)
@@ -419,6 +437,7 @@ func compactOr(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+// callStatus is the one-line state of the call shown beside the result title.
 func (m *Model) callStatus(c *callState) string {
 	replies := fmt.Sprintf("%d %s", c.total, plural(c.total, "reply", "replies"))
 	elapsed := roundDuration(c.elapsed)
@@ -440,6 +459,8 @@ func (m *Model) callStatus(c *callState) string {
 	}
 }
 
+// roundDuration rounds d for display: to milliseconds under a second, else to
+// hundredths of a second.
 func roundDuration(d time.Duration) string {
 	switch {
 	case d < time.Millisecond:
@@ -450,6 +471,8 @@ func roundDuration(d time.Duration) string {
 	return d.Round(10 * time.Millisecond).String()
 }
 
+// renderCallError explains a failed call: a Varlink error's name, parameters and
+// IDL doc, or the plain error, plus any hint on fixing it.
 func (m *Model) renderCallError(c *callState, width int) string {
 	var b strings.Builder
 	err := c.err
@@ -470,6 +493,8 @@ func (m *Model) renderCallError(c *callState, width int) string {
 	return b.String()
 }
 
+// updateMethod handles a key on a method page: page-wide shortcuts first, then
+// the result if it has focus, else the form or the JSON editor.
 func (m *Model) updateMethod(p *page, msg tea.KeyMsg) tea.Cmd {
 	c := p.call
 	switch {
@@ -600,6 +625,7 @@ func (m *Model) updateMethod(p *page, msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
+// paramsChanged revalidates after an edit and updates the preview and the command line.
 func (m *Model) paramsChanged(c *callState) {
 	c.validate()
 	m.refreshResponse(c, false)
@@ -616,6 +642,8 @@ func responseJSON(c *callState) string {
 	return strings.Join(lines, "\n")
 }
 
+// trySend sends the call if it is valid and the policy allows it, opening a
+// confirmation dialog first when the policy asks for one.
 func (m *Model) trySend(c *callState) tea.Cmd {
 	if c.running {
 		return m.setFlash("A call is already running; esc stops it.", false)
@@ -648,6 +676,8 @@ func (m *Model) trySend(c *callState) tea.Cmd {
 	return m.send(c)
 }
 
+// updateConfirm handles a key in the confirmation dialog: y or the typed method
+// name sends, esc cancels.
 func (m *Model) updateConfirm(c *callState, msg tea.KeyMsg) tea.Cmd {
 	cancel := func() tea.Cmd {
 		c.confirm = confirmNone
@@ -691,6 +721,7 @@ func (m *Model) refocus() tea.Cmd {
 	return p.call.focusEditor()
 }
 
+// send starts the call, clearing the previous result and recording it in history.
 func (m *Model) send(c *callState) tea.Cmd {
 	params, err := client.Compact([]byte(c.params()))
 	if err != nil {
@@ -758,6 +789,8 @@ func (m *Model) recordDone(c *callState) {
 	}
 }
 
+// viewMethod renders the method page: title, doc, parameters, flags, result and
+// earlier calls.
 func (m *Model) viewMethod(p *page, width, height int) string {
 	c := p.call
 	m.layoutMethod(p)
@@ -836,6 +869,7 @@ func (m *Model) viewMethod(p *page, width, height int) string {
 	return strings.Join(lines, "\n")
 }
 
+// earlierLine draws an earlier call of this method with its outcome, arguments and time.
 func (m *Model) earlierLine(e historyEntry, width int) string {
 	mark := m.spinner.View()
 	switch {
@@ -847,6 +881,7 @@ func (m *Model) earlierLine(e historyEntry, width int) string {
 	return columns(width, mark+" "+textStyle.Render(sanitize.Line(e.args)), mutedStyle.Render(sanitize.Line(e.status)), faintStyle.Render(e.at.Format("15:04:05")))
 }
 
+// sectionTitle draws a section heading, shown inverted when the section has focus.
 func sectionTitle(s string, focused bool) string {
 	st := brandStyle
 	if focused {
@@ -879,6 +914,7 @@ func framed(title string, lines []string, width, height int, focused bool) []str
 	return append(out, bc.Render("╰"+strings.Repeat("─", max(width-2, 0))+"╯"))
 }
 
+// toggle draws a flag as on, off or not available for this method.
 func toggle(name string, on, available bool) string {
 	switch {
 	case !available:
@@ -890,6 +926,8 @@ func toggle(name string, on, available bool) string {
 	}
 }
 
+// viewConfirm renders the dialog asking before a WRITE or DANGER call, showing what
+// will be sent and how to confirm.
 func (m *Model) viewConfirm(c *callState) string {
 	v := c.verdict(m.classifier)
 	color := classColor(v.Class)

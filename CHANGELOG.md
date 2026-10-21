@@ -22,6 +22,7 @@ All notable changes to vlx are recorded here. The format follows
 
 ### Added
 
+- `vlx version --short` prints only the version number, for scripts.
 - `vlx call SERVICE METHOD NAME=VALUE...`: parameters as words, converted
   using the IDL, as an alternative to a JSON object.
 - Parameter form on the call screen: one row per parameter with a fitting

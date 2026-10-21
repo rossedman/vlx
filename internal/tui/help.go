@@ -10,6 +10,7 @@ import (
 	"github.com/rossedman/vlx/internal/safety"
 )
 
+// helpSection renders a titled block of key and description rows.
 func helpSection(title string, rows [][2]string) string {
 	var b strings.Builder
 	b.WriteString(sectionStyle.MarginTop(0).Render(title) + "\n")
@@ -19,6 +20,7 @@ func helpSection(title string, rows [][2]string) string {
 	return b.String()
 }
 
+// bindingRows turns key bindings into help rows from their own help text.
 func bindingRows(bs ...key.Binding) [][2]string {
 	rows := make([][2]string, len(bs))
 	for i, b := range bs {

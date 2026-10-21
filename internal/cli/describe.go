@@ -10,6 +10,8 @@ import (
 	"github.com/rossedman/vlx/internal/render"
 )
 
+// newDescribeCommand builds `vlx describe`, which prints the highlighted IDL of a service's
+// interfaces, or of one; interfaces that fail to describe are reported together at the end.
 func newDescribeCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:     "describe SERVICE [INTERFACE]",
@@ -72,6 +74,7 @@ interface, as the service describes it. Output is highlighted on a terminal.`,
 	}
 }
 
+// trimNL drops trailing newlines and spaces from s.
 func trimNL(s string) string {
 	for len(s) > 0 && (s[len(s)-1] == '\n' || s[len(s)-1] == ' ') {
 		s = s[:len(s)-1]

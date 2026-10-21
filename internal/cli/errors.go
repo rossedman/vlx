@@ -33,6 +33,7 @@ type ExitError struct {
 	Silent bool
 }
 
+// Error returns the wrapped error's message, or "exit N" when there is none.
 func (e *ExitError) Error() string {
 	if e.Err == nil {
 		return fmt.Sprintf("exit %d", e.Code)
@@ -40,8 +41,10 @@ func (e *ExitError) Error() string {
 	return e.Err.Error()
 }
 
+// Unwrap returns the wrapped error, so errors.Is and errors.As see through it.
 func (e *ExitError) Unwrap() error { return e.Err }
 
+// usageError wraps err to exit with code 2, for bad flags, arguments and parameters.
 func usageError(err error) error {
 	return &ExitError{Code: ExitUsage, Err: err}
 }

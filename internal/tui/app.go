@@ -224,6 +224,8 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	}
 }
 
+// setFlash shows a status message, green when ok and red otherwise, and
+// schedules its removal; flashID makes an older timer leave a newer message alone.
 func (m *Model) setFlash(text string, ok bool) tea.Cmd {
 	m.flashID++
 	m.flash = sanitize.Line(text)
@@ -234,6 +236,7 @@ func (m *Model) setFlash(text string, ok bool) tea.Cmd {
 // flashFor is how long a status message stays.
 var flashFor = 4 * time.Second
 
+// stopAll cancels every call still running, before vlx quits.
 func (m *Model) stopAll() {
 	for _, c := range m.calls {
 		if c.cancel != nil {
@@ -242,6 +245,8 @@ func (m *Model) stopAll() {
 	}
 }
 
+// setSockets records the discovered sockets, keeping the --target socket
+// first even if discovery missed it, and previews the selection on home.
 func (m *Model) setSockets(sockets []discovery.Socket) tea.Cmd {
 	if t := m.opts.Target; t != "" {
 		if _, found := socketFor(t, sockets); !found {
@@ -274,6 +279,8 @@ func (m *Model) ensure(path string) tea.Cmd {
 	return m.introspect(path)
 }
 
+// handleIntrospected stores an introspection result and, if the command
+// line was waiting on that service, runs the pending line or flashes the error.
 func (m *Model) handleIntrospected(msg introspectedMsg) tea.Cmd {
 	st := m.state[msg.path]
 	if st == nil {
@@ -313,9 +320,13 @@ const (
 	chromeLines = 6 // header, a blank line, status, rule, command line, key hints
 )
 
+// bodyHeight is the number of rows left for the page after the chrome.
 func (m *Model) bodyHeight() int { return max(m.height-chromeLines, 5) }
-func (m *Model) bodyWidth() int  { return max(m.width-2*gutter, 20) }
 
+// bodyWidth is the page's width inside the gutters.
+func (m *Model) bodyWidth() int { return max(m.width-2*gutter, 20) }
+
+// clamp limits v to the range lo to hi.
 func clamp(v, lo, hi int) int {
 	return max(lo, min(v, hi))
 }
@@ -384,6 +395,8 @@ func overlayBottom(body, pop []string) []string {
 	return body
 }
 
+// viewHeader is the top row: the logo and breadcrumb on the left, the
+// read-only or writes and root badges on the right.
 func (m *Model) viewHeader() string {
 	parts := []string{logoStyle.Render("vlx")}
 	crumbs := m.breadcrumb()
@@ -417,6 +430,8 @@ func (m *Model) viewHeader() string {
 	return left + strings.Repeat(" ", gap) + right
 }
 
+// viewStatus is the row above the command line: a command error, a flash
+// message, or a spinner while the current service is being read.
 func (m *Model) viewStatus() string {
 	var s string
 	switch {

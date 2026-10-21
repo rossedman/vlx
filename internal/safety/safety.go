@@ -97,6 +97,8 @@ func (c *Classifier) ClassifyCall(qualified string, oneway bool) Verdict {
 	return v
 }
 
+// override returns the class from the first matching config pattern,
+// checking Danger, then Write, then Read.
 func (c *Classifier) override(qualified string) (Verdict, bool) {
 	groups := []struct {
 		class    Class
@@ -132,6 +134,8 @@ var (
 	}
 )
 
+// heuristic classifies by the method's leading verb: danger verbs first,
+// then read verbs, else Write.
 func heuristic(qualified string) Verdict {
 	method := qualified
 	if i := strings.LastIndexByte(qualified, '.'); i >= 0 {
