@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in vlx doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! If this is a way around vlx's safety guarantees
+        (sending a write without confirmation, escape-sequence injection, ...),
+        please [report it privately](https://github.com/rossedman/vlx/security/advisories/new) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran. `vlx demo` reproductions are especially welcome.
+      render: sh
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: vlx version
+      description: Output of `vlx version`.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and systemd version
+      placeholder: e.g. Fedora 43, systemd 258
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: Any error output. Please remove anything sensitive.
+      render: text
