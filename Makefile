@@ -39,6 +39,43 @@ cover: ## Check coverage is at least COVERAGE_MIN% and write coverage.html
 	$(GO) tool cover -html=coverage.out -o coverage.html
 	./hack/check-coverage.sh coverage.out $(COVERAGE_MIN)
 
+.PHONY: bench
+bench: ## Run benchmarks and save results to bench.txt (compare runs with benchstat)
+	$(GO) test -run='^$$' -bench=. -benchmem -count=6 ./... | tee bench.txt
+
+.PHONY: bench-smoke
+bench-smoke: ## Run every benchmark once
+	$(GO) test -run='^$$' -bench=. -benchtime=1x ./...
+
+FUZZTIME ?= 30s
+
+.PHONY: fuzz
+fuzz: ## Run every fuzz target for FUZZTIME (default 30s)
+	@set -e; for pkg in $$($(GO) list ./...); do \
+	  for f in $$($(GO) test -list='^Fuzz' $$pkg | grep '^Fuzz' || true); do \
+	    echo "== $$pkg $$f"; \
+	    $(GO) test -run='^$$' -fuzz="^$$f$$" -fuzztime=$(FUZZTIME) $$pkg; \
+	  done; \
+	done
+
+.PHONY: check-cmds
+check-cmds: ## Check there is one Cobra command per file
+	./tools/check-cmds.sh
+
+.PHONY: doccheck
+doccheck: ## Check every function, method and package has a doc comment
+	$(GO) run ./tools/doccheck ./...
+
+GOVULNCHECK_VERSION ?= v1.9.0
+
+.PHONY: vuln
+vuln: ## Scan for known vulnerabilities with govulncheck
+	$(GO) run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) ./...
+
+.PHONY: check
+check: lint race cover check-cmds doccheck vuln bench-smoke release-check docs ## Run every check CI runs
+	$(MAKE) fuzz FUZZTIME=30s
+
 .PHONY: lint
 lint: ## Run gofmt, go vet and golangci-lint
 	@test -z "$$(gofmt -l . | grep -v '^site/')" || (gofmt -l .; exit 1)
@@ -76,8 +113,8 @@ release-check: ## Validate the GoReleaser config
 
 .PHONY: snapshot
 snapshot: ## Build a local GoReleaser snapshot into dist/
-	goreleaser release --snapshot --clean
+	goreleaser release --snapshot --clean --skip=sign
 
 .PHONY: clean
 clean: ## Remove build outputs
-	rm -rf bin dist site completions manpages coverage.out coverage.html
+	rm -rf bin dist site completions manpages coverage.out coverage.hand.out coverage.html bench.txt
