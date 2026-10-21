@@ -25,6 +25,9 @@ func IDL(src string, color bool) string {
 	return strings.Join(lines, "\n")
 }
 
+// idlLine highlights one line of IDL: a keyword at the start colors the
+// next word as the declared name, a word before ':' is a field name, and
+// anything else is a builtin or named type.
 func idlLine(line string) string {
 	trimmed := strings.TrimLeft(line, " \t")
 	indent := line[:len(line)-len(trimmed)]
@@ -77,6 +80,7 @@ func idlLine(line string) string {
 	return b.String()
 }
 
+// isIdent reports whether c can be part of an IDL identifier.
 func isIdent(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
 }

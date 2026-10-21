@@ -8,6 +8,8 @@ import (
 	"github.com/rossedman/vlx/internal/config"
 )
 
+// newConfigPathCommand builds `vlx config path`, which prints the config file in use, or
+// the default path when there is none.
 func newConfigPathCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "path",

@@ -42,6 +42,7 @@ type item struct {
 	verdict safety.Verdict
 }
 
+// key identifies the item across rebuilds of the list, for keeping the selection.
 func (it item) key() string {
 	switch it.kind {
 	case itemSocket:
@@ -60,6 +61,7 @@ func (it item) key() string {
 	return ""
 }
 
+// name is the item's short name, or the title of a heading.
 func (it item) name() string {
 	switch it.kind {
 	case itemMethod:
@@ -74,6 +76,7 @@ func (it item) name() string {
 	return it.heading
 }
 
+// qualified is the item's name with its interface, as in io.systemd.Foo.Bar.
 func (it item) qualified() string {
 	if it.kind == itemIface {
 		return it.iface.Name
@@ -89,6 +92,7 @@ func (m *Model) items(p *page) []item {
 	return m.serviceItems(p)
 }
 
+// homeItems lists the three most recent calls, then the sockets grouped by kind.
 func (m *Model) homeItems() []item {
 	var out []item
 	if n := len(m.history); n > 0 {
@@ -114,6 +118,8 @@ func (m *Model) homeItems() []item {
 	return out
 }
 
+// serviceItems lists a service's interfaces, with the methods, types and errors
+// of the expanded ones. It is empty until the service is introspected.
 func (m *Model) serviceItems(p *page) []item {
 	svc := m.cache[p.path]
 	if svc == nil {
@@ -164,6 +170,7 @@ func cursorIndex(items []item, sel string) int {
 	return first
 }
 
+// selected returns the item under the cursor, if the page has any.
 func (m *Model) selected(p *page) (item, bool) {
 	items := m.items(p)
 	i := cursorIndex(items, p.sel)
@@ -199,6 +206,8 @@ func isTyping(msg tea.KeyMsg) bool {
 	return msg.Type == tea.KeyRunes && !msg.Alt && len(msg.Runes) > 0
 }
 
+// updateList handles a key on a list page. Typing a letter starts the command
+// line; moving the selection on the home page previews the socket.
 func (m *Model) updateList(p *page, msg tea.KeyMsg) tea.Cmd {
 	items := m.items(p)
 	page := max(m.bodyHeight()-4, 1)
@@ -245,6 +254,8 @@ func (m *Model) updateList(p *page, msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
+// refresh rediscovers sockets and, on a service page, drops the cached
+// introspection and reads it again.
 func (m *Model) refresh(p *page) tea.Cmd {
 	cmds := []tea.Cmd{discoverCmd(m.opts.Discovery), m.setFlash("Refreshing…", true)}
 	if p.kind == pageService {
@@ -310,6 +321,8 @@ func (m *Model) reopen(h historyEntry) tea.Cmd {
 	return cmd
 }
 
+// copySelected copies what is most useful for the selected item: a socket's path,
+// a vlx command for a call or method, or else the qualified name.
 func (m *Model) copySelected(p *page) tea.Cmd {
 	it, ok := m.selected(p)
 	if !ok {
@@ -350,6 +363,7 @@ func (m *Model) renderList(p *page, items []item, width, height int, focused boo
 	return lines[start:end]
 }
 
+// renderItem draws one list line, highlighted when selected.
 func (m *Model) renderItem(p *page, it item, width int, selected, focused bool) string {
 	var line string
 	switch it.kind {
@@ -394,6 +408,7 @@ func (m *Model) renderItem(p *page, it item, width int, selected, focused bool) 
 
 var typeGlyph = render.TypeStyle.Render("τ")
 
+// counts summarizes an interface as "3 methods · 2 types · 1 error", leaving out zeros.
 func counts(p *idl.Interface) string {
 	parts := []string{fmt.Sprintf("%d %s", len(p.Methods), plural(len(p.Methods), "method", "methods"))}
 	if n := len(p.Types); n > 0 {

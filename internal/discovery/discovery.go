@@ -132,6 +132,7 @@ type AmbiguousError struct {
 	Candidates []Socket
 }
 
+// Error lists every matching socket path and asks for a fuller name.
 func (e *AmbiguousError) Error() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%q matches %d services:", e.Query, len(e.Candidates))
@@ -188,6 +189,7 @@ func Resolve(arg string, sockets []Socket) (string, error) {
 	return "", fmt.Errorf("%w: no socket named %q (run 'vlx list' to see what is available)", ErrNotFound, arg)
 }
 
+// checkPath makes p absolute and confirms it exists and is a Unix socket.
 func checkPath(p string) (string, error) {
 	abs, err := filepath.Abs(p)
 	if err != nil {

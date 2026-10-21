@@ -25,6 +25,7 @@ type Options struct {
 	MaxFrameSize int
 }
 
+// dialOpts converts the options into varlink dial options.
 func (o Options) dialOpts() []varlink.Option {
 	var opts []varlink.Option
 	if o.MaxFrameSize > 0 {
@@ -33,6 +34,7 @@ func (o Options) dialOpts() []varlink.Option {
 	return opts
 }
 
+// timeout returns Timeout, or 10 seconds when it is unset.
 func (o Options) timeout() time.Duration {
 	if o.Timeout <= 0 {
 		return 10 * time.Second
@@ -248,6 +250,8 @@ func Call(ctx context.Context, path string, req Request, opts Options, fn func(R
 	}
 }
 
+// toReply copies a varlink reply into a Reply and closes any file
+// descriptors that came with it; empty parameters become {}.
 func toReply(r *varlink.Reply, start time.Time) Reply {
 	rep := Reply{
 		Params:    append(json.RawMessage(nil), r.Parameters...),

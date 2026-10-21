@@ -8,6 +8,8 @@ import (
 	"github.com/rossedman/vlx/internal/version"
 )
 
+// newVersionCommand builds `vlx version`, which prints the version with commit, build date,
+// Go, platform and sdvarlink details; --short prints only the version.
 func newVersionCommand(a *app) *cobra.Command {
 	var short bool
 	cmd := &cobra.Command{

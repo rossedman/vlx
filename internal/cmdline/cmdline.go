@@ -118,6 +118,8 @@ func Parse(line string) (Line, error) {
 	return l, nil
 }
 
+// isName reports whether s is a valid parameter name: a letter or
+// underscore, then letters, digits or underscores.
 func isName(s string) bool {
 	for i, r := range s {
 		ok := r == '_' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || i > 0 && r >= '0' && r <= '9'
@@ -241,6 +243,8 @@ func Twice(name string) error {
 	return fmt.Errorf("parameter %q given twice", name)
 }
 
+// suggest returns a hint for an unknown parameter: the field differing
+// only in case, the list of parameters, or a note that there are none.
 func suggest(name string, in *idl.Type) string {
 	if in == nil {
 		return ""
@@ -290,6 +294,8 @@ func Args(iface *idl.Interface, in *idl.Type, params json.RawMessage) ([]Arg, er
 	return out, nil
 }
 
+// compact re-encodes raw JSON without whitespace, or returns it unchanged
+// if it does not decode.
 func compact(raw json.RawMessage) string {
 	var b strings.Builder
 	dec := json.NewDecoder(strings.NewReader(string(raw)))

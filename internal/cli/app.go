@@ -34,6 +34,7 @@ type app struct {
 	dirs []string
 }
 
+// newApp returns an app wired to the process's stdin, stdout and stderr, with config defaults set.
 func newApp() *app {
 	v := viper.New()
 	config.SetDefaults(v)
@@ -55,6 +56,8 @@ func (a *app) loadIfExists() error {
 	return a.loadConfig(file)
 }
 
+// loadConfig reads file (or only defaults and the environment when empty) into a.cfg,
+// applies --no-preview, and turns colour off for NO_COLOR or a non-terminal stdout.
 func (a *app) loadConfig(file string) error {
 	cfg, err := config.Load(a.v, file)
 	if err != nil {
@@ -70,6 +73,7 @@ func (a *app) loadConfig(file string) error {
 	return nil
 }
 
+// isTTY reports whether f is an *os.File attached to a terminal, Cygwin's included.
 func isTTY(f any) bool {
 	file, ok := f.(*os.File)
 	if !ok {
@@ -78,6 +82,7 @@ func isTTY(f any) bool {
 	return isatty.IsTerminal(file.Fd()) || isatty.IsCygwinTerminal(file.Fd())
 }
 
+// isTTY reports whether stream is a terminal, asking a.tty first when a test set it.
 func (a *app) isTTY(stream any) bool {
 	if a.tty != nil {
 		return a.tty(stream)
@@ -85,19 +90,28 @@ func (a *app) isTTY(stream any) bool {
 	return isTTY(stream)
 }
 
+// outIsTTY reports whether stdout is a terminal.
 func (a *app) outIsTTY() bool { return a.isTTY(a.out) }
-func (a *app) inIsTTY() bool  { return a.isTTY(a.in) }
+
+// inIsTTY reports whether stdin is a terminal.
+func (a *app) inIsTTY() bool { return a.isTTY(a.in) }
+
+// errIsTTY reports whether stderr is a terminal.
 func (a *app) errIsTTY() bool { return a.isTTY(a.errOut) }
 
+// json reports whether -o json was asked for.
 func (a *app) json() bool { return a.cfg.Output == "json" }
 
 // color reports whether human output may use colour.
 func (a *app) color() bool { return !a.cfg.NoColor && a.outIsTTY() }
 
+// clientOptions returns the timeout and frame-size limit from the config for a client call.
 func (a *app) clientOptions() client.Options {
 	return client.Options{Timeout: a.cfg.Timeout, MaxFrameSize: a.cfg.MaxFrameSize}
 }
 
+// discoveryOptions returns the socket search settings: the default (or test) directories
+// plus the config's search_paths and any --search directories.
 func (a *app) discoveryOptions() discovery.Options {
 	extra := append(append([]string(nil), a.cfg.SearchPaths...), a.search...)
 	return discovery.Options{Dirs: a.dirs, Extra: extra}
@@ -116,6 +130,7 @@ func (a *app) resolve(arg string) (string, error) {
 	return p, nil
 }
 
+// containsSlash reports whether s has a '/', meaning it is a path rather than a name to discover.
 func containsSlash(s string) bool {
 	for i := 0; i < len(s); i++ {
 		if s[i] == '/' {

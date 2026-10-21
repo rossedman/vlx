@@ -9,6 +9,8 @@ import (
 	"github.com/rossedman/vlx/internal/sanitize"
 )
 
+// newInfoCommand builds `vlx info`, which prints a service's GetInfo: vendor, product,
+// version, URL and interfaces.
 func newInfoCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:     "info SERVICE",

@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
+// newGenDocsCommand builds the hidden `vlx gen-docs`, which writes the Markdown command
+// reference for the docs site, each page with a description front matter.
 func newGenDocsCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:    "gen-docs DIR",

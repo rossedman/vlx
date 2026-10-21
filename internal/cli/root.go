@@ -14,6 +14,8 @@ func NewRootCommand() *cobra.Command {
 	return newRootCommand(newApp())
 }
 
+// newRootCommand builds the root command around a: the persistent flags bound to viper,
+// the command groups and every subcommand. Bare `vlx` opens the explorer.
 func newRootCommand(a *app) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "vlx [SERVICE]",

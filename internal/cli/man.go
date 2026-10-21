@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
+// newManCommand builds the hidden `vlx man`, which writes section 1 man pages for every command into DIR.
 func newManCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:    "man DIR",

@@ -34,6 +34,7 @@ type RefusedError struct {
 	Class  Class
 }
 
+// Error names the method and its class and says how to allow it.
 func (e *RefusedError) Error() string {
 	return fmt.Sprintf("%s is a %s method and vlx is read-only; rerun with --allow-writes to enable it", e.Method, e.Class)
 }

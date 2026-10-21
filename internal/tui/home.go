@@ -10,6 +10,8 @@ import (
 	"github.com/rossedman/vlx/internal/sanitize"
 )
 
+// viewHome renders the home page: a count of services and the list, or the
+// welcome screen while discovery runs or when it finds nothing.
 func (m *Model) viewHome(p *page, width, height int) string {
 	if !m.discovered || len(m.sockets) == 0 {
 		return m.welcome(width)
@@ -25,6 +27,8 @@ func (m *Model) viewHome(p *page, width, height int) string {
 	return strings.Join(lines, "\n")
 }
 
+// socketLine is a service's row on the home page, with a dot and note for
+// whether it is reachable, being read, failed or read.
 func (m *Model) socketLine(s discovery.Socket, width int) string {
 	_, desc := describe(s)
 	dot := faintStyle.Render("○")
@@ -58,6 +62,8 @@ func (m *Model) socketLine(s discovery.Socket, width int) string {
 	return columns(width, dot+" "+boldStyle.Render(sanitize.Line(label(s))), textStyle.Render(sanitize.Line(desc)), meta)
 }
 
+// historyLine is an earlier call's row on the home page: its outcome, what
+// was called with which arguments, and when.
 func (m *Model) historyLine(h historyEntry, width int) string {
 	mark := m.spinner.View()
 	switch {
@@ -111,6 +117,7 @@ func (m *Model) welcome(width int) string {
 	return b.String()
 }
 
+// modeExplanation says what read-only or writes mode lets the user send.
 func modeExplanation(writes bool) string {
 	if writes {
 		return "Writes are enabled: vlx asks before every WRITE call and makes you type the name of DANGER methods."
@@ -118,14 +125,17 @@ func modeExplanation(writes bool) string {
 	return "vlx is read-only: you can prepare any call, but only READ methods are sent. Restart with --allow-writes to change that."
 }
 
+// wrap word-wraps s to width columns.
 func wrap(s string, width int) string {
 	return lipgloss.NewStyle().Width(width).Render(s)
 }
 
+// heading renders a section heading on a detail page.
 func heading(s string) string {
 	return sectionStyle.Render(s)
 }
 
+// plural picks one or many by n.
 func plural(n int, one, many string) string {
 	if n == 1 {
 		return one
@@ -133,4 +143,5 @@ func plural(n int, one, many string) string {
 	return many
 }
 
+// lower is strings.ToLower.
 func lower(s string) string { return strings.ToLower(s) }

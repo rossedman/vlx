@@ -39,6 +39,8 @@ type entry struct {
 	score   int
 }
 
+// qualified is the entry's full name: the service name, the interface name,
+// or interface.member.
 func (e entry) qualified() string {
 	switch e.kind {
 	case entryService:
@@ -143,6 +145,8 @@ func matchScore(query string, e entry) (int, bool) {
 	return score, true
 }
 
+// isBoundary reports whether s[i] starts a word: it follows a separator or
+// is the upper-case start of a CamelCase hump. i must be at least 1.
 func isBoundary(s string, i int) bool {
 	prev := rune(s[i-1])
 	cur := rune(s[i])
@@ -150,6 +154,8 @@ func isBoundary(s string, i int) bool {
 		(unicode.IsUpper(cur) && unicode.IsLower(prev))
 }
 
+// subsequence reports whether the bytes of sub appear in s in order, not
+// necessarily together.
 func subsequence(s, sub string) bool {
 	j := 0
 	for i := 0; i < len(s) && j < len(sub); i++ {
@@ -160,6 +166,8 @@ func subsequence(s, sub string) bool {
 	return j == len(sub)
 }
 
+// entryRow renders a suggestion: a glyph for its kind, its name, what it is
+// and, for methods, the safety class; highlighted when selected.
 func (m *Model) entryRow(e entry, width int, selected bool) string {
 	s, _ := socketFor(e.path, m.sockets)
 	svc := sanitize.Line(label(s))

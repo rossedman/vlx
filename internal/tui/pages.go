@@ -51,12 +51,15 @@ type page struct {
 	reader viewport.Model
 }
 
+// newPage makes a page of the given kind for the service at path.
 func newPage(kind pageKind, path string) *page {
 	return &page{kind: kind, path: path, expanded: map[string]bool{}, reader: viewport.New(40, 10)}
 }
 
+// page is the page on top of the stack, the one being shown.
 func (m *Model) page() *page { return m.stack[len(m.stack)-1] }
 
+// push puts p on top of the stack, sized for the screen.
 func (m *Model) push(p *page) {
 	m.stack = append(m.stack, p)
 	m.layoutPage(p)
@@ -91,12 +94,15 @@ func (m *Model) goTo(pages ...*page) {
 	}
 }
 
+// blur takes the keyboard from a method page's editor as the page is left.
 func (p *page) blur() {
 	if p.kind == pageMethod {
 		p.call.blurEditor()
 	}
 }
 
+// layoutPage sizes a page for the screen; only method, detail and help
+// pages have anything to size.
 func (m *Model) layoutPage(p *page) {
 	switch p.kind {
 	case pageMethod:
@@ -133,6 +139,7 @@ func (m *Model) currentCall() *callState {
 	return nil
 }
 
+// callByID finds a call by the id its replies carry, or nil if it is gone.
 func (m *Model) callByID(id int) *callState {
 	for _, c := range m.calls {
 		if c.id == id {
@@ -187,6 +194,7 @@ func (m *Model) openDetail(path string, it item, idlSource bool) {
 	m.cmd.clear()
 }
 
+// openHelp shows the help page, or closes it if it is already showing.
 func (m *Model) openHelp() tea.Cmd {
 	if m.page().kind == pageHelp {
 		return m.pop()
@@ -228,6 +236,8 @@ func (m *Model) previewSelected() tea.Cmd {
 	return tea.Tick(previewDelay, func(time.Time) tea.Msg { return previewMsg{seq: seq, path: path} })
 }
 
+// handlePreview introspects the previewed service, unless the cursor has
+// moved on since the preview was scheduled.
 func (m *Model) handlePreview(msg previewMsg) tea.Cmd {
 	if msg.seq != m.previewSeq {
 		return nil
@@ -269,6 +279,8 @@ func boilerplate(name string) bool {
 	return name == "org.varlink.service" || name == "io.systemd.service" || name == "io.systemd"
 }
 
+// isExpanded reports whether an interface is open on a service page;
+// boilerplate interfaces start closed, the rest open.
 func (p *page) isExpanded(iface string) bool {
 	if v, ok := p.expanded[iface]; ok {
 		return v

@@ -56,6 +56,8 @@ type node struct {
 	elems []*node
 }
 
+// parse decodes data into a node tree, rejecting anything after the first
+// value.
 func parse(data []byte) (*node, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
@@ -71,6 +73,8 @@ func parse(data []byte) (*node, error) {
 
 const maxNesting = 512
 
+// parseValue reads one value from dec, keeping numbers as written and
+// refusing nesting deeper than maxNesting.
 func parseValue(dec *json.Decoder, depth int) (*node, error) {
 	if depth > maxNesting {
 		return nil, errors.New("JSON nested too deeply")
@@ -156,6 +160,7 @@ type jsonWriter struct {
 	opts JSONOptions
 }
 
+// style writes text, colored with s when color is on.
 func (w jsonWriter) style(s lipglossStyle, text string) {
 	if w.opts.Color {
 		w.b.WriteString(s.Render(text))
@@ -164,6 +169,8 @@ func (w jsonWriter) style(s lipglossStyle, text string) {
 	}
 }
 
+// value writes n indented at depth, replacing non-null values under
+// redacted keys with the redaction marker.
 func (w jsonWriter) value(n *node, depth int) {
 	switch n.kind {
 	case '{':
