@@ -153,6 +153,8 @@ func (s *Server) Close() error {
 	return s.closeErr
 }
 
+// accept takes connections until the listener closes, serving each in its
+// own goroutine; one arriving after Close is closed at once.
 func (s *Server) accept() {
 	defer s.wg.Done()
 	for {
@@ -187,6 +189,8 @@ type reply struct {
 	Error      string `json:"error,omitempty"`
 }
 
+// serve reads calls from c and dispatches them until the peer goes away or
+// sends something unparseable. Replies to oneway calls are dropped.
 func (s *Server) serve(c net.Conn) {
 	defer s.wg.Done()
 	defer func() {
@@ -226,6 +230,8 @@ func (s *Server) serve(c net.Conn) {
 	}
 }
 
+// readMessage reads one NUL-terminated message, without the NUL, refusing
+// any longer than maxMessage.
 func readMessage(r *bufio.Reader) ([]byte, error) {
 	var buf bytes.Buffer
 	for {
@@ -243,6 +249,7 @@ func readMessage(r *bufio.Reader) ([]byte, error) {
 	}
 }
 
+// errorReply builds an error reply with the given name and parameters.
 func errorReply(name string, params any) reply {
 	return reply{Error: name, Parameters: params}
 }
@@ -303,6 +310,8 @@ func (s *Server) dispatch(ctx context.Context, in call, send func(reply) bool) b
 	return send(reply{Parameters: params})
 }
 
+// invalidParam returns the field path of the first validation error, for
+// an InvalidParameter reply.
 func invalidParam(err error) string {
 	var es schema.Errors
 	if errors.As(err, &es) && len(es) > 0 {
@@ -340,6 +349,7 @@ type dimensions struct {
 	Depth  float64 `json:"depth"`
 }
 
+// reset restores the default language and the starting inventory.
 func (s *Server) reset() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -359,6 +369,8 @@ func (s *Server) reset() {
 	s.nextID = 5
 }
 
+// handle runs the single-reply demo methods under the lock and returns
+// either reply parameters or an error name and its parameters.
 func (s *Server) handle(in call) (params any, errName string, errParams any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -436,6 +448,8 @@ func (s *Server) handle(in call) (params any, errName string, errParams any) {
 	return nil, "org.varlink.service.MethodNotImplemented", map[string]string{"method": in.Method}
 }
 
+// listItems replies with the items carrying the optional tag, in ID order:
+// all of them as a stream with more, else only the first.
 func (s *Server) listItems(in call, send func(reply) bool) bool {
 	var p struct {
 		Tag *string `json:"tag"`
@@ -464,6 +478,8 @@ func (s *Server) listItems(in call, send func(reply) bool) bool {
 	return true
 }
 
+// countdown streams the numbers from From down to 0, one per interval,
+// stopping early if the connection closes.
 func (s *Server) countdown(ctx context.Context, in call, send func(reply) bool) bool {
 	var p struct {
 		From     int64  `json:"from"`
@@ -498,6 +514,7 @@ func (s *Server) countdown(ctx context.Context, in call, send func(reply) bool) 
 	return true
 }
 
+// contains reports whether list holds s.
 func contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {

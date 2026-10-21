@@ -8,6 +8,8 @@ import (
 	"github.com/rossedman/vlx/internal/demo"
 )
 
+// newDemoCommand builds `vlx demo`, which starts the in-memory demo service and opens the
+// explorer on it, or with --serve only runs the service until interrupted.
 func newDemoCommand(a *app) *cobra.Command {
 	var serve bool
 	var socket string

@@ -9,6 +9,8 @@ import (
 	"github.com/rossedman/vlx/internal/tui"
 )
 
+// newExploreCommand builds `vlx explore`, which opens the TUI, at SERVICE if given or on the
+// list of discovered sockets.
 func newExploreCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:     "explore [SERVICE]",
@@ -30,6 +32,7 @@ Press ? inside the explorer for every key binding.`,
 	}
 }
 
+// runExplore opens the explorer for `vlx explore` and for bare `vlx [SERVICE]`.
 func runExplore(_ *cobra.Command, a *app, args []string) error {
 	return a.runTUI(args, "")
 }

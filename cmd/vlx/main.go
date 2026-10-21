@@ -9,6 +9,7 @@ import (
 	"github.com/rossedman/vlx/internal/cli"
 )
 
+// main runs vlx with the command-line arguments and exits with its status.
 func main() {
 	os.Exit(run(os.Args[1:], os.Stderr))
 }

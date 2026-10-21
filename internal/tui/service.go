@@ -7,6 +7,8 @@ import (
 	"github.com/rossedman/vlx/internal/sanitize"
 )
 
+// viewService renders a service page: its name, socket and vendor over the
+// list of interfaces, or the error, a permission warning or a spinner.
 func (m *Model) viewService(p *page, width, height int) string {
 	s, _ := socketFor(p.path, m.sockets)
 	_, desc := describe(s)

@@ -26,6 +26,9 @@ func Text(s string) string {
 	return clean(s, true)
 }
 
+// clean drops control characters, carriage returns and bidi overrides and
+// replaces invalid UTF-8; newlines and tabs are kept when multiline, else
+// turned into spaces.
 func clean(s string, multiline bool) string {
 	if isClean(s, multiline) {
 		return s
@@ -56,6 +59,8 @@ func clean(s string, multiline bool) string {
 	return b.String()
 }
 
+// isClean is the fast path for plain ASCII that clean would leave alone; it
+// returns false for any non-ASCII byte.
 func isClean(s string, multiline bool) bool {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
@@ -72,6 +77,8 @@ func isClean(s string, multiline bool) bool {
 	return true
 }
 
+// isBidiOverride reports whether r is a bidi embedding, override or
+// isolate control, which can make text display out of order.
 func isBidiOverride(r rune) bool {
 	return (r >= 0x202A && r <= 0x202E) || (r >= 0x2066 && r <= 0x2069)
 }

@@ -20,6 +20,8 @@ type listEntry struct {
 	Error      string   `json:"error,omitempty"`
 }
 
+// newListCommand builds `vlx list`, which prints the discovered sockets as a table or JSON;
+// --probe also asks each one for its GetInfo.
 func newListCommand(a *app) *cobra.Command {
 	var probe bool
 	cmd := &cobra.Command{
@@ -80,6 +82,8 @@ and asks for its GetInfo, which is read-only.`,
 	return cmd
 }
 
+// probeAll fills in each entry's GetInfo, eight sockets at a time, recording failures in the
+// entry's Error.
 func probeAll(ctx context.Context, a *app, entries []listEntry) {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 8)
@@ -100,6 +104,7 @@ func probeAll(ctx context.Context, a *app, entries []listEntry) {
 	wg.Wait()
 }
 
+// shortErr keeps only the last part of a wrapped error message, to fit a table cell.
 func shortErr(err error) string {
 	s := err.Error()
 	if i := strings.LastIndex(s, ": "); i >= 0 && i < len(s)-2 {

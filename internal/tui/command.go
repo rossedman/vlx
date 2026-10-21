@@ -47,6 +47,7 @@ type target struct {
 	args   []cmdline.Arg
 }
 
+// newCommand builds an empty, unfocused command line.
 func newCommand() command {
 	ti := textinput.New()
 	ti.Prompt = "› "
@@ -58,6 +59,7 @@ func newCommand() command {
 	return command{input: ti}
 }
 
+// focus gives the line the keyboard and resets ↑ history to the newest line.
 func (c *command) focus() tea.Cmd {
 	c.focused = true
 	c.recallPos = len(c.recall)
@@ -65,12 +67,15 @@ func (c *command) focus() tea.Cmd {
 	return c.input.Focus()
 }
 
+// blur takes the keyboard away and drops the suggestions, target and error,
+// keeping the text.
 func (c *command) blur() {
 	c.focused = false
 	c.input.Blur()
 	c.sugg, c.target, c.err, c.moved = nil, nil, "", false
 }
 
+// clear empties the line along with its suggestions, target and error.
 func (c *command) clear() {
 	c.input.SetValue("")
 	c.sugg, c.target, c.err, c.moved, c.cursor = nil, nil, "", false, 0
@@ -88,6 +93,8 @@ func (c *command) remember(line string) {
 	c.recallPos = len(c.recall)
 }
 
+// updateCommand handles a key while the command line has the keyboard: esc,
+// ⏎, ↑↓ through suggestions or history, ⇥ to complete, or an edit to the text.
 func (m *Model) updateCommand(msg tea.KeyMsg) tea.Cmd {
 	c := &m.cmd
 	p := m.page()
@@ -331,6 +338,8 @@ func (m *Model) findMethod(name string) (string, *client.Interface, *idl.Method,
 	return path, iface, mt, n == 1
 }
 
+// noMethod is the error for a line naming a method the service lacks; it
+// lists up to eight of the methods the service does have.
 func (m *Model) noMethod(path string, svc *client.Service, name string) error {
 	var names []string
 	for _, iface := range svc.Interfaces {
@@ -477,6 +486,8 @@ func (m *Model) syncCommand() {
 	m.cmd.input.CursorEnd()
 }
 
+// viewCommand renders the command line, noting on a method page that it
+// mirrors the form.
 func (m *Model) viewCommand() string {
 	in := m.cmd.input
 	in.Width = max(m.width-2*gutter-4, 10)

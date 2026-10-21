@@ -33,6 +33,8 @@ func (m *Model) refreshReader(p *page) {
 	p.reader.SetContent(strings.TrimRight(content, "\n"))
 }
 
+// updateReader handles a key on a detail or help page: going back, toggling
+// docs and IDL, jumping to the command line, or scrolling.
 func (m *Model) updateReader(p *page, msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case msg.String() == "q" && p.kind == pageHelp:
@@ -63,6 +65,8 @@ func (m *Model) updateReader(p *page, msg tea.KeyMsg) tea.Cmd {
 	return cmd
 }
 
+// viewReader renders a detail or help page: a title line, with the docs and
+// IDL switch on detail pages, over the scrolling text.
 func (m *Model) viewReader(p *page, width, height int) string {
 	var title string
 	if p.kind == pageHelp {

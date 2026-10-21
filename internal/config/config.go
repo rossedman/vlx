@@ -145,6 +145,7 @@ type InsecureError struct {
 	Reason string
 }
 
+// Error says why the file was refused and how to fix its permissions.
 func (e *InsecureError) Error() string {
 	return fmt.Sprintf("refusing to load %s: %s (the config can enable writes; fix with 'chmod go-w %s')", e.Path, e.Reason, e.Path)
 }

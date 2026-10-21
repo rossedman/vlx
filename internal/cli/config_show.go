@@ -7,6 +7,8 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+// newConfigShowCommand builds `vlx config show`, which prints the effective settings as
+// YAML, or as JSON with -o json.
 func newConfigShowCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",

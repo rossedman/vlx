@@ -10,6 +10,8 @@ import (
 	"github.com/rossedman/vlx/internal/schema"
 )
 
+// newTemplateCommand builds `vlx template`, which prints a JSON object of the method's
+// required parameters with typed placeholders and lists the optional ones on stderr.
 func newTemplateCommand(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:     "template SERVICE METHOD",

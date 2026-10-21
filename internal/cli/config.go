@@ -2,6 +2,7 @@ package cli
 
 import "github.com/spf13/cobra"
 
+// newConfigCommand builds `vlx config`, the parent of the path, show and init subcommands.
 func newConfigCommand(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "config",

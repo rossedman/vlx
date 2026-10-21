@@ -41,12 +41,14 @@ type flashMsg struct {
 
 type flashClearMsg struct{ id int }
 
+// discoverCmd scans for sockets in the background and reports them as a discoveredMsg.
 func discoverCmd(opts discovery.Options) tea.Cmd {
 	return func() tea.Msg {
 		return discoveredMsg{sockets: discovery.Discover(opts)}
 	}
 }
 
+// introspectCmd reads the interfaces of the service at path in the background.
 func introspectCmd(path string, opts client.Options) tea.Cmd {
 	return func() tea.Msg {
 		svc, err := client.Introspect(context.Background(), path, opts)
@@ -74,6 +76,8 @@ func startCall(id int, path string, req client.Request, opts client.Options) (te
 	return waitFor(ch), cancel
 }
 
+// waitFor delivers the next message from a call's channel, or nothing once it
+// is closed. It is re-issued after each message to keep draining.
 func waitFor(ch chan tea.Msg) tea.Cmd {
 	return func() tea.Msg {
 		msg, ok := <-ch
@@ -88,6 +92,7 @@ func waitFor(ch chan tea.Msg) tea.Cmd {
 // works over SSH in most terminals; tests replace it.
 var clipboard = termenv.Copy
 
+// copyCmd puts text on the clipboard and flashes that what was copied.
 func copyCmd(text, what string) tea.Cmd {
 	return func() tea.Msg {
 		clipboard(text)
@@ -95,6 +100,8 @@ func copyCmd(text, what string) tea.Cmd {
 	}
 }
 
+// clearFlashAfter sends a flashClearMsg for flash id after d, so a newer flash
+// is not cleared early.
 func clearFlashAfter(id int, d time.Duration) tea.Cmd {
 	return tea.Tick(d, func(time.Time) tea.Msg { return flashClearMsg{id: id} })
 }
