@@ -1,0 +1,13 @@
+{
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--fast-only"],
+  "gopls": {
+    "ui.semanticTokens": true,
+    "ui.diagnostic.staticcheck": true,
+    "ui.diagnostic.analyses": {
+      "unusedparams": true,
+      "shadow": true
+    },
+    "formatting.local": "github.com/rossedman/vlx"
+  }
+}

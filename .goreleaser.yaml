@@ -81,6 +81,14 @@ checksum:
   name_template: checksums.txt
   algorithm: sha256
 
+# Keyless Sigstore signing with the release workflow's GitHub OIDC
+# identity. The checksums file covers every archive and package.
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--bundle=${signature}", "${artifact}", "--yes"]
+
 snapshot:
   # e.g. 0.1.1-snapshot.main.a1b2c3d
   version_template: >-

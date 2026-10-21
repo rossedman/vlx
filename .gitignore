@@ -14,6 +14,7 @@
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
+bench.txt
 !coverage.go
 *.coverprofile
 profile.cov
@@ -39,3 +40,8 @@ go.work.sum
 /completions/
 /manpages/
 coverage.html
+
+# Shared editor settings (gopls, golangci-lint); everything else in .vscode stays local.
+!.vscode/
+.vscode/*
+!.vscode/settings.json

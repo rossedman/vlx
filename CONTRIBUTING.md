@@ -28,6 +28,7 @@ internal/schema/    parameter skeletons and validation
 internal/...        discovery, client, render, sanitize, config, demo
 docs/               MkDocs site (docs/project/spec.md is the design)
 hack/               scripts for screenshots, diagrams and completions
+tools/              repo checks (check-cmds.sh, doccheck, generated)
 ```
 
 See [Architecture](https://rossedman.github.io/vlx/project/architecture/).
@@ -55,11 +56,18 @@ make lint test cover
 ```
 
 `make cover` fails if total test coverage drops below **90%** (measured
-across packages), and writes `coverage.html` so you can see what is missing.
-CI enforces the same minimum.
+across packages, on hand-written code only), and writes `coverage.html` so
+you can see what is missing. CI enforces the same minimum.
+
+`make check` runs everything CI runs: lint, race tests, the coverage gate,
+one-command-per-file (`tools/check-cmds.sh`), doc comments on every function,
+method and package (`tools/doccheck`), govulncheck, a benchmark and fuzz smoke
+run, the GoReleaser config check and a strict docs build.
 
 CI runs the tests with the race detector on Linux (amd64, arm64) and macOS,
-golangci-lint, and a GoReleaser snapshot build for every platform.
+plus golangci-lint, those repo checks, govulncheck, and a GoReleaser snapshot
+build for every platform. Actions are pinned to commit SHAs; Dependabot keeps
+them current.
 
 ## Commit messages
 
@@ -71,4 +79,7 @@ grouped by these prefixes.
 
 Tag `vX.Y.Z` on `main` and push the tag. The Release workflow tests, builds
 every platform with GoReleaser and publishes the GitHub release with archives,
-packages and checksums.
+packages and checksums. The checksums are signed keylessly with cosign and the
+release gets a build provenance attestation; see
+[Verify a download](https://rossedman.github.io/vlx/getting-started/installation/#verify-a-download)
+for how to verify them.
