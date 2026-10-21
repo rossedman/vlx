@@ -80,5 +80,6 @@ grouped by these prefixes.
 Tag `vX.Y.Z` on `main` and push the tag. The Release workflow tests, builds
 every platform with GoReleaser and publishes the GitHub release with archives,
 packages and checksums. The checksums are signed keylessly with cosign and the
-release gets a build provenance attestation; see [SECURITY.md](SECURITY.md)
+release gets a build provenance attestation; see
+[Verify a download](https://rossedman.github.io/vlx/getting-started/installation/#verify-a-download)
 for how to verify them.
