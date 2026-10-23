@@ -5,7 +5,7 @@ the safest. Both matter in every change.
 
 ## Getting set up
 
-You need Go 1.24 or newer. Nothing else: the tests run against vlx's built-in
+You need Go 1.26 or newer. Nothing else: the tests run against vlx's built-in
 demo service, so you do not need systemd (macOS works too).
 
 ```sh

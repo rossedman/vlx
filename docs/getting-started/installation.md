@@ -14,7 +14,7 @@ vlx is a single static binary with no runtime dependencies.
 
 ## With Go
 
-Needs Go 1.24 or newer.
+Needs Go 1.26 or newer.
 
 ```sh
 go install github.com/rossedman/vlx/cmd/vlx@latest
