@@ -92,7 +92,7 @@ Read [the safety guide](https://rossedman.github.io/vlx/guides/safety/).
 
 | Method | Command |
 | --- | --- |
-| Go 1.24+ | `go install github.com/rossedman/vlx/cmd/vlx@latest` |
+| Go 1.26+ | `go install github.com/rossedman/vlx/cmd/vlx@latest` |
 | Archives | [Releases](https://github.com/rossedman/vlx/releases) for Linux (amd64, arm64, armv7, riscv64, ppc64le, s390x) and macOS (amd64, arm64) |
 | Packages | `.deb`, `.rpm` and `.apk` on every release, with completions and man pages |
 

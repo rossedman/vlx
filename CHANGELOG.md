@@ -8,6 +8,7 @@ All notable changes to vlx are recorded here. The format follows
 
 ### Changed
 
+- Updated sdvarlink to v0.2.1. Building vlx now needs Go 1.26 or newer.
 - The explorer is now a drill-down with a command line: one page at a time
   (services → a service → a method) and a line along the bottom that is
   always there. Type to jump anywhere, or type a whole call —
