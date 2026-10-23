@@ -1,8 +1,8 @@
 module github.com/rossedman/vlx
 
-go 1.24.7
+go 1.26.0
 
-require github.com/rossedman/sdvarlink v0.1.0
+require github.com/rossedman/sdvarlink v0.2.0
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
@@ -14,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	go.yaml.in/yaml/v3 v3.0.5
-	golang.org/x/sys v0.38.0
+	golang.org/x/sys v0.49.0
 )
 
 require (
