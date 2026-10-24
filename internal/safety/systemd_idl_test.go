@@ -83,6 +83,52 @@ import (
 	v260udev "github.com/rossedman/sdvarlink/systemd/v260/udev"
 	v260unit "github.com/rossedman/sdvarlink/systemd/v260/unit"
 	v260userdatabase "github.com/rossedman/sdvarlink/systemd/v260/userdatabase"
+	v262askpassword "github.com/rossedman/sdvarlink/systemd/v262/askpassword"
+	v262bootcontrol "github.com/rossedman/sdvarlink/systemd/v262/bootcontrol"
+	v262credentials "github.com/rossedman/sdvarlink/systemd/v262/credentials"
+	v262cryptenroll "github.com/rossedman/sdvarlink/systemd/v262/cryptenroll"
+	v262factoryreset "github.com/rossedman/sdvarlink/systemd/v262/factoryreset"
+	v262hostname "github.com/rossedman/sdvarlink/systemd/v262/hostname"
+	v262importd "github.com/rossedman/sdvarlink/systemd/v262/importd"
+	v262instancemetadata "github.com/rossedman/sdvarlink/systemd/v262/instancemetadata"
+	v262job "github.com/rossedman/sdvarlink/systemd/v262/job"
+	v262journal "github.com/rossedman/sdvarlink/systemd/v262/journal"
+	v262journalaccess "github.com/rossedman/sdvarlink/systemd/v262/journalaccess"
+	v262login "github.com/rossedman/sdvarlink/systemd/v262/login"
+	v262machine "github.com/rossedman/sdvarlink/systemd/v262/machine"
+	v262machineimage "github.com/rossedman/sdvarlink/systemd/v262/machineimage"
+	v262machineinstance "github.com/rossedman/sdvarlink/systemd/v262/machineinstance"
+	v262managedoom "github.com/rossedman/sdvarlink/systemd/v262/managedoom"
+	v262manager "github.com/rossedman/sdvarlink/systemd/v262/manager"
+	v262metrics "github.com/rossedman/sdvarlink/systemd/v262/metrics"
+	v262mountfilesystem "github.com/rossedman/sdvarlink/systemd/v262/mountfilesystem"
+	v262muteconsole "github.com/rossedman/sdvarlink/systemd/v262/muteconsole"
+	v262namespaceresource "github.com/rossedman/sdvarlink/systemd/v262/namespaceresource"
+	v262network "github.com/rossedman/sdvarlink/systemd/v262/network"
+	v262networklink "github.com/rossedman/sdvarlink/systemd/v262/networklink"
+	v262oom "github.com/rossedman/sdvarlink/systemd/v262/oom"
+	v262oomprekill "github.com/rossedman/sdvarlink/systemd/v262/oomprekill"
+	v262pcrextend "github.com/rossedman/sdvarlink/systemd/v262/pcrextend"
+	v262pcrlock "github.com/rossedman/sdvarlink/systemd/v262/pcrlock"
+	v262repart "github.com/rossedman/sdvarlink/systemd/v262/repart"
+	v262report "github.com/rossedman/sdvarlink/systemd/v262/report"
+	v262reportsigner "github.com/rossedman/sdvarlink/systemd/v262/reportsigner"
+	v262reportuploader "github.com/rossedman/sdvarlink/systemd/v262/reportuploader"
+	v262resolve "github.com/rossedman/sdvarlink/systemd/v262/resolve"
+	v262resolvehook "github.com/rossedman/sdvarlink/systemd/v262/resolvehook"
+	v262resolvemonitor "github.com/rossedman/sdvarlink/systemd/v262/resolvemonitor"
+	v262service "github.com/rossedman/sdvarlink/systemd/v262/service"
+	v262shutdown "github.com/rossedman/sdvarlink/systemd/v262/shutdown"
+	v262storageprovider "github.com/rossedman/sdvarlink/systemd/v262/storageprovider"
+	v262sysext "github.com/rossedman/sdvarlink/systemd/v262/sysext"
+	v262sysinstall "github.com/rossedman/sdvarlink/systemd/v262/sysinstall"
+	v262systemd "github.com/rossedman/sdvarlink/systemd/v262/systemd"
+	v262sysupdate "github.com/rossedman/sdvarlink/systemd/v262/sysupdate"
+	v262sysupdatenotify "github.com/rossedman/sdvarlink/systemd/v262/sysupdatenotify"
+	v262udev "github.com/rossedman/sdvarlink/systemd/v262/udev"
+	v262unit "github.com/rossedman/sdvarlink/systemd/v262/unit"
+	v262userdatabase "github.com/rossedman/sdvarlink/systemd/v262/userdatabase"
+	v262virtualmachineinstance "github.com/rossedman/sdvarlink/systemd/v262/virtualmachineinstance"
 )
 
 var systemdIDL = []string{
@@ -165,4 +211,50 @@ var systemdIDL = []string{
 	v260udev.InterfaceDescription,
 	v260unit.InterfaceDescription,
 	v260userdatabase.InterfaceDescription,
+	v262askpassword.InterfaceDescription,
+	v262bootcontrol.InterfaceDescription,
+	v262credentials.InterfaceDescription,
+	v262cryptenroll.InterfaceDescription,
+	v262factoryreset.InterfaceDescription,
+	v262hostname.InterfaceDescription,
+	v262importd.InterfaceDescription,
+	v262instancemetadata.InterfaceDescription,
+	v262job.InterfaceDescription,
+	v262journal.InterfaceDescription,
+	v262journalaccess.InterfaceDescription,
+	v262login.InterfaceDescription,
+	v262machine.InterfaceDescription,
+	v262machineimage.InterfaceDescription,
+	v262machineinstance.InterfaceDescription,
+	v262managedoom.InterfaceDescription,
+	v262manager.InterfaceDescription,
+	v262metrics.InterfaceDescription,
+	v262mountfilesystem.InterfaceDescription,
+	v262muteconsole.InterfaceDescription,
+	v262namespaceresource.InterfaceDescription,
+	v262network.InterfaceDescription,
+	v262networklink.InterfaceDescription,
+	v262oom.InterfaceDescription,
+	v262oomprekill.InterfaceDescription,
+	v262pcrextend.InterfaceDescription,
+	v262pcrlock.InterfaceDescription,
+	v262repart.InterfaceDescription,
+	v262report.InterfaceDescription,
+	v262reportsigner.InterfaceDescription,
+	v262reportuploader.InterfaceDescription,
+	v262resolve.InterfaceDescription,
+	v262resolvehook.InterfaceDescription,
+	v262resolvemonitor.InterfaceDescription,
+	v262service.InterfaceDescription,
+	v262shutdown.InterfaceDescription,
+	v262storageprovider.InterfaceDescription,
+	v262sysext.InterfaceDescription,
+	v262sysinstall.InterfaceDescription,
+	v262systemd.InterfaceDescription,
+	v262sysupdate.InterfaceDescription,
+	v262sysupdatenotify.InterfaceDescription,
+	v262udev.InterfaceDescription,
+	v262unit.InterfaceDescription,
+	v262userdatabase.InterfaceDescription,
+	v262virtualmachineinstance.InterfaceDescription,
 }
