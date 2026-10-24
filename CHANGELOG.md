@@ -6,6 +6,11 @@ All notable changes to vlx are recorded here. The format follows
 
 ## Unreleased
 
+### Security
+
+- Updated golang.org/x/text to v0.43.0, fixing CVE-2026-56851 and
+  CVE-2026-56852.
+
 ### Changed
 
 - Updated sdvarlink to v0.2.1. Building vlx now needs Go 1.26 or newer.
