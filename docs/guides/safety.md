@@ -25,8 +25,8 @@ vlx decides the class in this order, and the first rule that matches wins:
 
 1. **Your overrides** in the [config file](configuration.md#safety-overrides).
 2. **A built-in table** that covers every `io.systemd.*` method in systemd
-   v257, v258 and v260. A test fails if a new systemd release adds a method
-   without a rule, so systemd methods never depend on guesswork.
+   v257, v258, v260 and v262. A test fails if a new systemd release adds a
+   method without a rule, so systemd methods never depend on guesswork.
 3. **The method's verb.** `Get…`, `List…`, `Describe…`, `Resolve…`,
    `Subscribe…`, `Dump…`, `Can…` and similar are READ; `Kill…`, `Remove…`,
    `Delete…`, `Reset…`, `Reboot…`, `PowerOff…` and similar are DANGER.

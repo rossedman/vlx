@@ -299,7 +299,7 @@ Classification is decided in this order, first match wins:
 
 1. User overrides in config (`safety.read`, `safety.write`, `safety.danger`:
    lists of glob patterns over qualified method names).
-2. A built-in table covering every `io.systemd.*` method in systemd v257–v260
+2. A built-in table covering every `io.systemd.*` method in systemd v257–v262
    and `org.varlink.service`.
 3. Name heuristics: a danger verb (`Kill`, `Terminate`, `Remove`, `Delete`,
    `Reset`, `Reboot`, `PowerOff`, `Wipe`, `Format`, …) → `DANGER`; a read verb

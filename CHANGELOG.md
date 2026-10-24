@@ -9,6 +9,18 @@ All notable changes to vlx are recorded here. The format follows
 ### Changed
 
 - Updated sdvarlink to v0.2.1. Building vlx now needs Go 1.26 or newer.
+- Updated sdvarlink to v0.3.0, which adds systemd v262.
+- The built-in safety table now covers every method systemd v262 added, so
+  none of them fall back to the name heuristic. Among the corrections that
+  makes: `Manager.KExec`, `Manager.SoftReboot` and `Shutdown.*` are DANGER
+  (the heuristic said WRITE for kexec and soft reboot), `Unit.StartTransient`,
+  `CryptEnroll.Enroll`, `SysInstall.Run`, `Job.ClearAll`,
+  `Network.Reload`, `Network.Link.Reconfigure` and `Report.Signer.Sign` are
+  DANGER, `InstanceMetadata.Get` is WRITE because instance user data can hold
+  secrets, and `Resolve.Monitor.ResetServerFeatures` is WRITE, like
+  `ResetStatistics`.
+- The home page describes systemd v262's new services: Shutdown, SysUpdate,
+  SysInstall, Report, InstanceMetadata and CryptEnroll.
 - The explorer is now a drill-down with a command line: one page at a time
   (services → a service → a method) and a line along the bottom that is
   always there. Type to jump anywhere, or type a whole call —
