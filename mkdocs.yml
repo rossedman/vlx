@@ -122,6 +122,7 @@ nav:
       - The explorer: guides/explorer.md
       - Calling methods: guides/calling.md
       - Scripting: guides/scripting.md
+      - AI agents (MCP): guides/agents.md
       - Safety: guides/safety.md
       - Configuration: guides/configuration.md
       - systemd recipes: guides/systemd.md
@@ -139,6 +140,7 @@ nav:
           - vlx template: reference/cli/vlx_template.md
           - vlx call: reference/cli/vlx_call.md
           - vlx demo: reference/cli/vlx_demo.md
+          - vlx mcp: reference/cli/vlx_mcp.md
           - vlx config: reference/cli/vlx_config.md
           - vlx config init: reference/cli/vlx_config_init.md
           - vlx config path: reference/cli/vlx_config_path.md
