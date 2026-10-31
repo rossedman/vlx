@@ -45,10 +45,13 @@ vlx config path
 | `max_replies` | | `VLX_MAX_REPLIES` | `1000` | Stream replies kept in the TUI. |
 | `preview` | `--no-preview` | `VLX_PREVIEW` | `true` | Introspect services as the cursor moves, and for search. |
 | `search_paths` | `--search` | | `[]` | Extra directories to search for sockets. |
-| `redact` | | | see below | Keys whose values are hidden in the TUI. |
+| `redact` | | | see below | Keys whose values are hidden in the TUI and in `vlx mcp` results. |
 | `safety` | | | empty | Classification overrides. |
 | `output` | `-o`, `--output` | `VLX_OUTPUT` | `text` | `text` or `json`. |
 | `no_color` | `--no-color` | `VLX_NO_COLOR`, `NO_COLOR` | `false` | Disable colour. |
+| `mcp.max_stream_replies` | | | `20` | Replies a `vlx mcp` stream returns unless the agent asks for more (at most 200). |
+| `mcp.max_stream_seconds` | | | `10` | Seconds a `vlx mcp` stream runs unless the agent asks for longer (at most 60). |
+| `mcp.max_result_bytes` | | | `262144` | Largest `vlx mcp` tool result, in bytes. |
 
 ## Example
 

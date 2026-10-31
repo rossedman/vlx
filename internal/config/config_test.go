@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,5 +88,40 @@ func TestInvalid(t *testing.T) {
 func TestMissingExplicit(t *testing.T) {
 	if _, err := Load(newViper(), filepath.Join(t.TempDir(), "nope.yaml")); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// TestMCPSettings loads and validates the mcp section.
+func TestMCPSettings(t *testing.T) {
+	dir := t.TempDir()
+	write := func(body string) string {
+		p := filepath.Join(dir, "config.yaml")
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	c, err := Load(newViper(), write("mcp:\n  max_stream_replies: 50\n  max_stream_seconds: 30\n  max_result_bytes: 8192\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.MCP != (MCP{MaxStreamReplies: 50, MaxStreamSeconds: 30, MaxResultBytes: 8192}) {
+		t.Errorf("mcp = %+v", c.MCP)
+	}
+	defaults, err := Load(newViper(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if defaults.MCP != (MCP{MaxStreamReplies: DefaultMCPStreamReplies, MaxStreamSeconds: DefaultMCPStreamSeconds, MaxResultBytes: DefaultMCPResultBytes}) {
+		t.Errorf("defaults = %+v", defaults.MCP)
+	}
+	_, err = Load(newViper(), write("mcp:\n  max_stream_replies: 201\n  max_stream_seconds: 0\n  max_result_bytes: 10\n"))
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	for _, key := range []string{"mcp.max_stream_replies", "mcp.max_stream_seconds", "mcp.max_result_bytes"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Errorf("error lacks %s: %v", key, err)
+		}
 	}
 }

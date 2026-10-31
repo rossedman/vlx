@@ -55,6 +55,7 @@ vlx [SERVICE] [flags]
 * [vlx explore](vlx_explore.md)	 - Open the interactive explorer (the default command)
 * [vlx info](vlx_info.md)	 - Show a service's vendor, product, version and interfaces
 * [vlx list](vlx_list.md)	 - List the Varlink sockets on this host
+* [vlx mcp](vlx_mcp.md)	 - Serve vlx to an AI agent over the Model Context Protocol
 * [vlx template](vlx_template.md)	 - Print a JSON parameter template for a method
 * [vlx version](vlx_version.md)	 - Print version and build information
 
