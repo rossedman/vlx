@@ -268,7 +268,7 @@ func TestCallStreams(t *testing.T) {
 		t.Errorf("full = %v", out)
 	}
 	out = s.ok("call", map[string]any{"service": "demo", "method": "WatchCountdown",
-		"params": map[string]any{"from": 100, "intervalMilliseconds": 5000}, "stream": map[string]any{"max_seconds": 1}})
+		"params": map[string]any{"from": 100, "intervalMilliseconds": 2000}, "stream": map[string]any{"max_seconds": 1}})
 	if len(out["replies"].([]any)) != 1 || out["continues"] != true || out["stopped"] != StoppedMaxSeconds {
 		t.Errorf("timed = %v", out)
 	}

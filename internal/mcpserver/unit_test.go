@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rossedman/sdvarlink/idl"
 	"github.com/rossedman/sdvarlink/varlink"
@@ -208,6 +209,34 @@ func TestCleanNumber(t *testing.T) {
 	} {
 		if got := cleanNumber(json.Number(in)); got != want {
 			t.Errorf("%s = %#v, want %#v", in, got, want)
+		}
+	}
+}
+
+// TestStreamTimedOut covers the socket deadline firing before the
+// context's own timer, which macOS runners hit.
+func TestStreamTimedOut(t *testing.T) {
+	now := time.Now()
+	live := context.Background()
+	gone, cancel := context.WithCancel(context.Background())
+	cancel()
+	tests := []struct {
+		name        string
+		ctx, runCtx context.Context
+		err         error
+		deadline    time.Time
+		want        bool
+	}{
+		{"socket deadline before the context timer", live, live, context.DeadlineExceeded, now.Add(-time.Millisecond), true},
+		{"socket deadline exactly at the deadline", live, live, context.DeadlineExceeded, now, true},
+		{"context done", live, gone, context.Canceled, now.Add(time.Hour), true},
+		{"timeout well before the deadline", live, live, context.DeadlineExceeded, now.Add(time.Second), false},
+		{"other error after the deadline", live, live, errors.New("boom"), now.Add(-time.Second), false},
+		{"client went away", gone, gone, context.Canceled, now.Add(-time.Second), false},
+	}
+	for _, tc := range tests {
+		if got := streamTimedOut(tc.ctx, tc.runCtx, tc.err, tc.deadline, now); got != tc.want {
+			t.Errorf("%s = %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }

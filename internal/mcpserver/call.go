@@ -153,9 +153,11 @@ func (s *Server) call(ctx context.Context, in CallInput) (CallOutput, error) {
 	out := CallOutput{Method: q, Class: v.Class.String(), Replies: []any{}, Notice: Notice}
 	start := s.now()
 	runCtx := ctx
+	var deadline time.Time
 	if more {
 		var cancel context.CancelFunc
-		runCtx, cancel = context.WithTimeout(ctx, time.Duration(maxSeconds)*time.Second)
+		deadline = time.Now().Add(time.Duration(maxSeconds) * time.Second)
+		runCtx, cancel = context.WithDeadline(ctx, deadline)
 		defer cancel()
 	}
 	size := 0
@@ -180,12 +182,13 @@ func (s *Server) call(ctx context.Context, in CallInput) (CallOutput, error) {
 		return nil
 	})
 	out.ElapsedMs = s.now().Sub(start).Milliseconds()
+	timedOut := more && streamTimedOut(ctx, runCtx, err, deadline, time.Now())
 	switch {
 	case err == nil:
-	case more && ctx.Err() == nil && runCtx.Err() != nil && len(out.Replies) > 0:
+	case timedOut && len(out.Replies) > 0:
 		// The stream outlived max_seconds: a normal end, not a failure.
 		out.Stopped, out.Continues = StoppedMaxSeconds, true
-	case more && ctx.Err() == nil && errors.Is(runCtx.Err(), context.DeadlineExceeded):
+	case timedOut:
 		return CallOutput{}, &ToolError{Kind: KindLimit, Retry: true,
 			Message: "no reply arrived within stream.max_seconds",
 			Hint:    "Raise stream.max_seconds (at most 60) if the method is slow to start."}
@@ -197,6 +200,18 @@ func (s *Server) call(ctx context.Context, in CallInput) (CallOutput, error) {
 		return CallOutput{}, s.callError(err, p)
 	}
 	return out, nil
+}
+
+// streamTimedOut reports whether a stream ended because max_seconds passed
+// rather than because the client went away or the service failed. The
+// connection's read deadline is set to the same instant as runCtx's, and
+// the socket can time out a moment before the context's timer marks
+// runCtx done, so a deadline error at or after the deadline counts too.
+func streamTimedOut(ctx, runCtx context.Context, err error, deadline, now time.Time) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+	return runCtx.Err() != nil || (errors.Is(err, context.DeadlineExceeded) && !now.Before(deadline))
 }
 
 // errTooLarge ends a call whose first reply does not fit the result budget.
