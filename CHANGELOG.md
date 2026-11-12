@@ -40,6 +40,13 @@ All notable changes to vlx are recorded here. The format follows
 
 ### Added
 
+- `vlx mcp`, a Model Context Protocol server on stdio, so AI agents such as
+  Claude Code can explore the host's Varlink services. It offers the tools
+  `list_services`, `describe`, `method_schema` and `call`, and each
+  interface's IDL as a `varlink://<service>/<interface>` resource. Only READ
+  methods are sent; replies are sanitised, redacted, size-bounded and
+  labelled as data. Streams and results are bounded by the new `mcp:`
+  config section. See the AI agents guide.
 - `vlx version --short` prints only the version number, for scripts.
 - `vlx call SERVICE METHOD NAME=VALUE...`: parameters as words, converted
   using the IDL, as an alternative to a JSON object.

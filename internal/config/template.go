@@ -44,4 +44,13 @@ safety:
   read: []      # e.g. "com.example.Thing.Peek*"
   write: []
   danger: []    # e.g. "io.systemd.Unit.SetProperties"
+
+# Limits for 'vlx mcp', the MCP server for AI agents. A stream stops at
+# whichever cap it reaches first; an agent may ask for less, never more than
+# 200 replies or 60 seconds. A tool result larger than max_result_bytes is
+# cut, and the result says so.
+mcp:
+  max_stream_replies: 20
+  max_stream_seconds: 10
+  max_result_bytes: 262144
 `

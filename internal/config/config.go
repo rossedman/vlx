@@ -29,7 +29,32 @@ const (
 	KeyNoColor      = "no_color"
 	KeyOutput       = "output"
 	KeyPreview      = "preview"
+	KeyMCP          = "mcp"
 )
+
+// Defaults and limits for `vlx mcp`, shared with the MCP server.
+const (
+	// DefaultMCPStreamReplies is how many replies a stream returns by default.
+	DefaultMCPStreamReplies = 20
+	// MaxMCPStreamReplies is the most replies one stream may return.
+	MaxMCPStreamReplies = 200
+	// DefaultMCPStreamSeconds is how long a stream runs by default.
+	DefaultMCPStreamSeconds = 10
+	// MaxMCPStreamSeconds is the longest one stream may run.
+	MaxMCPStreamSeconds = 60
+	// DefaultMCPResultBytes is the size budget for one tool result.
+	DefaultMCPResultBytes = 256 << 10
+)
+
+// MCP holds the settings of `vlx mcp`, the Model Context Protocol server.
+type MCP struct {
+	// MaxStreamReplies is the default reply cap for streams.
+	MaxStreamReplies int `mapstructure:"max_stream_replies" yaml:"max_stream_replies"`
+	// MaxStreamSeconds is the default time cap for streams.
+	MaxStreamSeconds int `mapstructure:"max_stream_seconds" yaml:"max_stream_seconds"`
+	// MaxResultBytes is the size budget for one tool result.
+	MaxResultBytes int `mapstructure:"max_result_bytes" yaml:"max_result_bytes"`
+}
 
 // Config is the resolved configuration.
 type Config struct {
@@ -43,6 +68,7 @@ type Config struct {
 	NoColor      bool             `mapstructure:"no_color" yaml:"no_color"`
 	Output       string           `mapstructure:"output" yaml:"-"`
 	Preview      bool             `mapstructure:"preview" yaml:"preview"`
+	MCP          MCP              `mapstructure:"mcp" yaml:"mcp"`
 
 	// File is the config file that was loaded, or "".
 	File string `mapstructure:"-" yaml:"-"`
@@ -62,6 +88,9 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault(KeyNoColor, false)
 	v.SetDefault(KeyOutput, "text")
 	v.SetDefault(KeyPreview, true)
+	v.SetDefault(KeyMCP+".max_stream_replies", DefaultMCPStreamReplies)
+	v.SetDefault(KeyMCP+".max_stream_seconds", DefaultMCPStreamSeconds)
+	v.SetDefault(KeyMCP+".max_result_bytes", DefaultMCPResultBytes)
 }
 
 // DefaultPath is $XDG_CONFIG_HOME/vlx/config.yaml, or
@@ -132,6 +161,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Output != "text" && c.Output != "json" {
 		errs = append(errs, fmt.Errorf("output must be text or json, got %q", c.Output))
+	}
+	if n := c.MCP.MaxStreamReplies; n < 1 || n > MaxMCPStreamReplies {
+		errs = append(errs, fmt.Errorf("mcp.max_stream_replies must be between 1 and %d, got %d", MaxMCPStreamReplies, n))
+	}
+	if n := c.MCP.MaxStreamSeconds; n < 1 || n > MaxMCPStreamSeconds {
+		errs = append(errs, fmt.Errorf("mcp.max_stream_seconds must be between 1 and %d, got %d", MaxMCPStreamSeconds, n))
+	}
+	if n := c.MCP.MaxResultBytes; n < 4096 || n > 16<<20 {
+		errs = append(errs, fmt.Errorf("mcp.max_result_bytes must be between 4096 and 16777216, got %d", n))
 	}
 	if err := c.Safety.Validate(); err != nil {
 		errs = append(errs, err)

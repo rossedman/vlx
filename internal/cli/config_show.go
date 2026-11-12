@@ -26,6 +26,7 @@ func newConfigShowCommand(a *app) *cobra.Command {
 					"search_paths":   a.cfg.SearchPaths,
 					"redact":         a.cfg.Redact,
 					"safety":         map[string][]string{"read": a.cfg.Safety.Read, "write": a.cfg.Safety.Write, "danger": a.cfg.Safety.Danger},
+					"mcp":            mcpSettings(a),
 					"file":           a.cfg.File,
 				})
 			}
@@ -43,10 +44,20 @@ func newConfigShowCommand(a *app) *cobra.Command {
 				"search_paths":   a.cfg.SearchPaths,
 				"redact":         a.cfg.Redact,
 				"safety":         map[string][]string{"read": a.cfg.Safety.Read, "write": a.cfg.Safety.Write, "danger": a.cfg.Safety.Danger},
+				"mcp":            mcpSettings(a),
 			}
 			enc := yaml.NewEncoder(a.out)
 			enc.SetIndent(2)
 			return enc.Encode(out)
 		},
+	}
+}
+
+// mcpSettings returns the mcp section of the effective configuration.
+func mcpSettings(a *app) map[string]int {
+	return map[string]int{
+		"max_stream_replies": a.cfg.MCP.MaxStreamReplies,
+		"max_stream_seconds": a.cfg.MCP.MaxStreamSeconds,
+		"max_result_bytes":   a.cfg.MCP.MaxResultBytes,
 	}
 }

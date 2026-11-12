@@ -245,6 +245,7 @@ One Cobra command per file under `internal/cli/`.
 | `vlx template SERVICE METHOD` | Print a JSON parameter skeleton for a method. |
 | `vlx call SERVICE METHOD [PARAMS \| NAME=VALUE...]` | Call a method. |
 | `vlx demo` | Serve the demo interface and explore it (`--serve` to only serve). The socket lives in `$XDG_RUNTIME_DIR/vlx/` so other commands find it as `demo`. |
+| `vlx mcp` | Serve vlx to AI agents over the Model Context Protocol on stdio. See below. |
 | `vlx config path\|show\|init` | Inspect or create the config file. |
 | `vlx version` | Version, commit, build date, Go version. |
 | `vlx completion SHELL` | Shell completion (Cobra built-in). |
@@ -269,6 +270,29 @@ One Cobra command per file under `internal/cli/`.
 - `--allow-writes` / `--yes`: see [§6.2](#62-policy).
 - Method names may be qualified (`io.systemd.Hostname.Describe`) or, when the
   service implements exactly one interface with that method, bare (`Describe`).
+
+`vlx mcp` details:
+
+- Tools: `list_services` (`probe` for GetInfo), `describe` (interfaces, with
+  each method's class, streaming mode, signature and whether it is callable),
+  `method_schema` (JSON Schema draft 2020-12 for In and Out, an example and
+  the optional fields) and `call` (`service`, `method`, `params`, `stream`).
+  Each interface's IDL is a `text/plain` resource at
+  `varlink://<socket name>/<interface>`; `resources/list` mirrors discovery.
+- Only READ methods are sent. WRITE and DANGER are refused, with or without
+  `--allow-writes`, until a confirmation flow exists. Oneway is never
+  offered; methods with file-descriptor fields are refused.
+- Methods that require `more` always stream; methods that support it stream
+  only when `stream` is given. Streams stop at `stream.max_replies` (default
+  `mcp.max_stream_replies`, 20, at most 200) or `stream.max_seconds` (default
+  `mcp.max_stream_seconds`, 10, at most 60) and report `continues` and
+  `stopped`. One result is at most `mcp.max_result_bytes` (256 KiB).
+- Every service string is sanitised, values under `redact` keys are
+  replaced, integers keep their exact digits, and each result carries a
+  notice that service content is data. Failures are tool results with
+  `isError` and `{"error": {kind, message, hint, retry, ...}}`, where kind is
+  `varlink`, `errno`, `refused`, `invalid_params`, `not_found`, `access`,
+  `limit` or `unavailable`.
 
 Global flags: `--config`, `--timeout` (default `10s`), `--allow-writes`,
 `-o/--output text|json`, `--no-color`, `--max-frame-size`.
@@ -401,6 +425,10 @@ safety:
   read: []      # globs, e.g. "com.example.Thing.Peek*"
   write: []
   danger: []
+mcp:
+  max_stream_replies: 20
+  max_stream_seconds: 10
+  max_result_bytes: 262144
 ```
 
 ## 9. Architecture
@@ -418,6 +446,7 @@ internal/render/           JSON and IDL highlighting
 internal/tui/              Bubble Tea model: pages, command line, styles, keys
 internal/cmdline/          SERVICE METHOD NAME=VALUE grammar shared with vlx call
 internal/demo/             built-in demo Varlink service
+internal/mcpserver/        MCP server for vlx mcp: tools, resources, limits
 internal/version/          build metadata
 ```
 
